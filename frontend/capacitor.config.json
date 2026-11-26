@@ -15,6 +15,11 @@
       "linkedin.com"
     ]
   },
+  "ios": {
+    "allowsInlineMediaPlayback": true,
+    "mediaPlaybackRequiresUserAction": false,
+    "allowsLinkPreview": false
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 800,

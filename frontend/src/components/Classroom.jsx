@@ -45,7 +45,8 @@ import {
   Maximize,
   Minimize,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Pause
 } from "lucide-react";
 import ClassroomCodeEditor from "./Classroom/ClassroomCodeEditor";
 import HandwrittenNotebookView from "./Dashboard/HandwrittenNotebookView";
@@ -92,6 +93,64 @@ const formatVideoDuration = (seconds) => {
     return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   }
   return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
+
+const formatPlaybackClock = (seconds) => {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
+
+// Phones, tablets, and the Capacitor app. Desktop (fine pointer, wide window) stays on the native player.
+const isHandheldVideoDevice = () => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const android = /Android/i.test(ua);
+  const nativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  const coarse = window.matchMedia?.('(pointer: coarse)')?.matches;
+  const narrow = window.matchMedia?.('(max-width: 1024px)')?.matches;
+  return Boolean(nativeApp || iOS || android || (coarse && narrow));
+};
+
+const readViewportBox = () => {
+  const vv = window.visualViewport;
+  const width = Math.round(vv?.width || window.innerWidth);
+  const height = Math.round(vv?.height || window.innerHeight);
+  return {
+    width,
+    height,
+    offsetTop: vv?.offsetTop || 0,
+    offsetLeft: vv?.offsetLeft || 0,
+  };
+};
+
+// Explicit pixel box from the visual viewport. Percentage heights collapse on iPhone and
+// leave the lesson as a thin strip. The picture stays upright; a landscape phone gets a
+// full-height 16:9 frame from the same box.
+const buildPseudoFullscreenStyle = (box) => {
+  const base = {
+    position: 'fixed',
+    zIndex: 2147483000,
+    margin: 0,
+    maxWidth: 'none',
+    maxHeight: 'none',
+    borderRadius: 0,
+    aspectRatio: 'auto',
+    background: '#000',
+    transform: 'none',
+  };
+  if (!box) {
+    return { ...base, top: 0, left: 0, width: '100vw', height: '100dvh' };
+  }
+  return {
+    ...base,
+    top: `${box.offsetTop || 0}px`,
+    left: `${box.offsetLeft || 0}px`,
+    width: `${box.width}px`,
+    height: `${box.height}px`,
+  };
 };
 
 const INDIAN_LANGS = [
@@ -735,14 +794,49 @@ const Classroom = () => {
   const [controlsVisible, setControlsVisible] = useState(true);
   const controlsHideTimeoutRef = useRef(null);
   const isCurrentlyPlayingRef = useRef(false);
+  const controlsVisibleRef = useRef(true);
+  const isPseudoFullscreenRef = useRef(false);
+  const scrollLockYRef = useRef(0);
+  const scrubbingRef = useRef(false);
+  const statusBarHiddenRef = useRef(false);
+  const [handheldPlayer] = useState(() => isHandheldVideoDevice());
+  const [fsBox, setFsBox] = useState(null);
+  const [playbackSeconds, setPlaybackSeconds] = useState(0);
+
+  const youtubeOpts = useMemo(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com';
+    return {
+      host: 'https://www.youtube.com',
+      width: '100%',
+      height: '100%',
+      playerVars: {
+        autoplay: 1,
+        playsinline: 1,
+        rel: 0,
+        modestbranding: handheldPlayer ? 1 : 0,
+        enablejsapi: 1,
+        // Handheld: hide YouTube's own fullscreen button. On iPhone it opens the system
+        // video view, which letterboxes the lesson and paints over our quiz.
+        fs: handheldPlayer ? 0 : 1,
+        controls: handheldPlayer ? 0 : 1,
+        disablekb: handheldPlayer ? 1 : 0,
+        origin,
+        widget_referrer: origin,
+        iv_load_policy: 3,
+        hl: 'en',
+      },
+    };
+  }, [handheldPlayer]);
 
   const showControlsTemporarily = () => {
+    controlsVisibleRef.current = true;
     setControlsVisible(true);
     if (controlsHideTimeoutRef.current) {
       clearTimeout(controlsHideTimeoutRef.current);
     }
     if (isCurrentlyPlayingRef.current) {
       controlsHideTimeoutRef.current = setTimeout(() => {
+        controlsVisibleRef.current = false;
         setControlsVisible(false);
       }, 2500);
     }
@@ -757,6 +851,7 @@ const Classroom = () => {
       if (controlsHideTimeoutRef.current) {
         clearTimeout(controlsHideTimeoutRef.current);
       }
+      controlsVisibleRef.current = false;
       setControlsVisible(false);
     }
   };
@@ -839,6 +934,55 @@ const Classroom = () => {
   useEffect(() => {
     showCelebrationRef.current = showCelebration;
   }, [showCelebration]);
+
+  // Keep the lesson paused for the whole time a question is on screen.
+  // A single pauseVideo() is ignored on iOS often enough that the quiz appears to "sometimes" pause.
+  useEffect(() => {
+    if (!activeCheckpoint && !showCelebration) return undefined;
+    const pauseIfPlaying = () => {
+      if (!activeCheckpointRef.current && !showCelebrationRef.current) return;
+      const p = playerRef.current;
+      if (!p || typeof p.pauseVideo !== 'function') return;
+      try { p.pauseVideo(); } catch (_) {}
+    };
+    pauseIfPlaying();
+    const timers = [80, 220, 500, 1000, 1800].map((ms) => setTimeout(pauseIfPlaying, ms));
+    const interval = setInterval(pauseIfPlaying, 400);
+    return () => {
+      timers.forEach(clearTimeout);
+      clearInterval(interval);
+    };
+  }, [activeCheckpoint, showCelebration]);
+
+  // Keep a phone quiz pinned to the screen. iOS otherwise scrolls the page under the question.
+  useEffect(() => {
+    if (!handheldPlayer || isPseudoFullscreenRef.current) return undefined;
+    if (!activeCheckpoint && !showCelebration) return undefined;
+    const y = window.scrollY || window.pageYOffset || 0;
+    const prev = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+    };
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${y}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    return () => {
+      document.body.style.overflow = prev.overflow;
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.left = prev.left;
+      document.body.style.right = prev.right;
+      document.body.style.width = prev.width;
+      window.scrollTo(0, y);
+    };
+  }, [activeCheckpoint, showCelebration, handheldPlayer]);
 
   useEffect(() => {
     playerRef.current = player;
@@ -1222,30 +1366,47 @@ const Classroom = () => {
   };
 
   const handleCheckpointContinue = () => {
+    // Clear the ref before playVideo(), or the playing-state handler pauses the lesson again.
+    activeCheckpointRef.current = null;
     setActiveCheckpoint(null);
-    if (player && typeof player.playVideo === 'function') {
+    const p = playerRef.current || player;
+    if (p && typeof p.playVideo === 'function') {
       try {
-        player.playVideo();
+        p.playVideo();
       } catch (_) {}
     }
   };
 
   const handleCheckpointRewind = (seconds = 15) => {
-    const cpToRewind = activeCheckpoint;
+    const cpToRewind = activeCheckpointRef.current || activeCheckpoint;
     if (cpToRewind?.id) {
       triggeredCheckpointIdsRef.current.delete(cpToRewind.id);
     }
+    activeCheckpointRef.current = null;
     setActiveCheckpoint(null);
-    if (player && typeof player.getCurrentTime === 'function' && typeof player.seekTo === 'function') {
-      player.getCurrentTime().then(cur => {
-        const target = Math.max(0, cur - seconds);
-        player.seekTo(target, true);
-        if (typeof player.playVideo === 'function') player.playVideo();
-      }).catch(() => {
-        if (typeof player.playVideo === 'function') player.playVideo();
-      });
-    } else if (player && typeof player.playVideo === 'function') {
-      player.playVideo();
+    const p = playerRef.current || player;
+    if (p && typeof p.getCurrentTime === 'function' && typeof p.seekTo === 'function') {
+      try {
+        const cur = p.getCurrentTime();
+        const seekAndPlay = (value) => {
+          const target = Math.max(0, Number(value) - seconds);
+          p.seekTo(target, true);
+          if (typeof p.playVideo === 'function') p.playVideo();
+        };
+        if (cur && typeof cur.then === 'function') {
+          cur.then(seekAndPlay).catch(() => {
+            if (typeof p.playVideo === 'function') p.playVideo();
+          });
+        } else {
+          seekAndPlay(cur);
+        }
+      } catch (_) {
+        if (typeof p.playVideo === 'function') {
+          try { p.playVideo(); } catch (__) {}
+        }
+      }
+    } else if (p && typeof p.playVideo === 'function') {
+      p.playVideo();
     }
   };
 
@@ -1253,6 +1414,7 @@ const Classroom = () => {
   useEffect(() => {
     if (!videoId) return;
 
+    activeCheckpointRef.current = null;
     setActiveCheckpoint(null);
     setShowCelebration(false);
     setSessionXp(0);
@@ -1590,7 +1752,24 @@ const Classroom = () => {
     ? playlist.videos[currentIdx + 1]
     : null;
 
+  const hideStatusBarForVideo = () => {
+    if (typeof window === 'undefined' || !window.Capacitor?.isNativePlatform?.()) return;
+    import('@capacitor/status-bar')
+      .then(({ StatusBar }) => StatusBar.hide())
+      .then(() => { statusBarHiddenRef.current = true; })
+      .catch(() => {});
+  };
+
+  const restoreStatusBarForVideo = () => {
+    if (!statusBarHiddenRef.current) return;
+    statusBarHiddenRef.current = false;
+    import('@capacitor/status-bar')
+      .then(({ StatusBar }) => StatusBar.show())
+      .catch(() => {});
+  };
+
   const cleanupFullscreenStyles = () => {
+    const restoreY = scrollLockYRef.current || 0;
     try {
       document.body.style.overflow = '';
       document.body.style.position = '';
@@ -1603,16 +1782,17 @@ const Classroom = () => {
       if (screen.orientation && typeof screen.orientation.unlock === 'function') {
         try { screen.orientation.unlock(); } catch (_) {}
       }
-      window.scrollTo(0, 0);
-      if (document.documentElement) document.documentElement.scrollTop = 0;
-      if (document.body) document.body.scrollTop = 0;
+      restoreStatusBarForVideo();
+      window.scrollTo(0, restoreY);
+      if (document.documentElement) document.documentElement.scrollTop = restoreY;
+      if (document.body) document.body.scrollTop = restoreY;
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('resize'));
         setTimeout(() => {
           try {
-            window.scrollTo(0, 0);
-            if (document.documentElement) document.documentElement.scrollTop = 0;
-            if (document.body) document.body.scrollTop = 0;
+            window.scrollTo(0, restoreY);
+            if (document.documentElement) document.documentElement.scrollTop = restoreY;
+            if (document.body) document.body.scrollTop = restoreY;
             window.dispatchEvent(new Event('resize'));
           } catch (_) {}
         }, 60);
@@ -1624,6 +1804,7 @@ const Classroom = () => {
   // On mobile (< 1024px) we allow natural page scrolling.
   useEffect(() => {
     const lockScroll = () => {
+      if (isPseudoFullscreenRef.current) return;
       const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
       if (window.innerWidth >= 1024 && !isTouch) {
         document.documentElement.style.overflow = 'hidden';
@@ -1674,12 +1855,56 @@ const Classroom = () => {
     };
   }, [isPseudoFullscreen]);
 
+  useEffect(() => {
+    if (!isPseudoFullscreen) return undefined;
+    const update = () => setFsBox(readViewportBox());
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', update);
+    vv?.addEventListener('scroll', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+      vv?.removeEventListener('resize', update);
+      vv?.removeEventListener('scroll', update);
+    };
+  }, [isPseudoFullscreen]);
+
+  const exitPseudoFullscreen = () => {
+    isPseudoFullscreenRef.current = false;
+    setIsPseudoFullscreen(false);
+    setFsBox(null);
+    cleanupFullscreenStyles();
+  };
+
   const enterPseudoFullscreen = () => {
+    scrollLockYRef.current = window.scrollY || window.pageYOffset || 0;
+    isPseudoFullscreenRef.current = true;
     try {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollLockYRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
     } catch (_) {}
+    setFsBox(readViewportBox());
     setIsPseudoFullscreen(true);
+    hideStatusBarForVideo();
+
+    // Ask the phone to turn landscape during the tap. iOS often rejects this; the stage
+    // still fills the screen, and a manual rotation is picked up by the viewport listener.
+    try {
+      const lockResult = screen.orientation && typeof screen.orientation.lock === 'function'
+        ? screen.orientation.lock('landscape')
+        : null;
+      if (lockResult && typeof lockResult.then === 'function') {
+        lockResult.then(() => setFsBox(readViewportBox())).catch(() => {});
+      }
+    } catch (_) {}
   };
 
   const handleFullscreenToggle = () => {
@@ -1698,19 +1923,24 @@ const Classroom = () => {
         } catch (_) {}
       }
       setIsNativeFullscreen(false);
-      setIsPseudoFullscreen(false);
-      cleanupFullscreenStyles();
+      exitPseudoFullscreen();
       return;
     }
 
     // If currently in pseudo-fullscreen, exit it
-    if (isPseudoFullscreen) {
-      setIsPseudoFullscreen(false);
-      cleanupFullscreenStyles();
+    if (isPseudoFullscreenRef.current || isPseudoFullscreen) {
+      exitPseudoFullscreen();
       return;
     }
 
-    // Attempt container-level HTML5 requestFullscreen (Desktop / Android)
+    // Phones and the iOS app must not use the system video fullscreen.
+    // That view letterboxes the lesson and sits above the quiz.
+    if (handheldPlayer) {
+      enterPseudoFullscreen();
+      return;
+    }
+
+    // Attempt container-level HTML5 requestFullscreen (Desktop)
     const requestFs = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen || container.msRequestFullscreen;
 
     if (requestFs && typeof requestFs === 'function') {
@@ -1722,21 +1952,69 @@ const Classroom = () => {
               screen.orientation.lock('landscape').catch(() => {});
             }
           }).catch(() => {
-            // iOS Safari or browser permission fallback
             enterPseudoFullscreen();
           });
-        } else {
-          if (screen.orientation && typeof screen.orientation.lock === 'function') {
-            screen.orientation.lock('landscape').catch(() => {});
-          }
+        } else if (screen.orientation && typeof screen.orientation.lock === 'function') {
+          screen.orientation.lock('landscape').catch(() => {});
         }
       } catch (_) {
         enterPseudoFullscreen();
       }
     } else {
-      // iOS iPhone / Mobile where requestFullscreen is not supported on div elements
       enterPseudoFullscreen();
     }
+  };
+
+  const togglePlayback = () => {
+    const p = playerRef.current;
+    if (!p || activeCheckpointRef.current || showCelebrationRef.current) return;
+    try {
+      if (isCurrentlyPlayingRef.current) p.pauseVideo();
+      else if (typeof p.playVideo === 'function') p.playVideo();
+    } catch (_) {}
+    showControlsTemporarily();
+  };
+
+  const nudgePlayback = (delta) => {
+    const p = playerRef.current;
+    if (!p || typeof p.getCurrentTime !== 'function' || typeof p.seekTo !== 'function') return;
+    if (activeCheckpointRef.current || showCelebrationRef.current) return;
+    try {
+      const cur = Number(p.getCurrentTime()) || 0;
+      const dur = Number(p.getDuration?.()) || videoDuration || 0;
+      const next = Math.max(0, dur > 0 ? Math.min(dur, cur + delta) : cur + delta);
+      p.seekTo(next, true);
+      setPlaybackSeconds(next);
+      showControlsTemporarily();
+    } catch (_) {}
+  };
+
+  const handleMobileSeek = (event) => {
+    const next = Number(event.target.value);
+    if (Number.isNaN(next)) return;
+    setPlaybackSeconds(next);
+    const p = playerRef.current;
+    if (p && typeof p.seekTo === 'function') {
+      try { p.seekTo(next, true); } catch (_) {}
+    }
+    showControlsTemporarily();
+  };
+
+  const lockIframeToInline = (playerInstance) => {
+    if (!handheldPlayer) return;
+    try {
+      const iframe = playerInstance?.getIframe?.();
+      if (!iframe) return;
+      iframe.removeAttribute('allowfullscreen');
+      iframe.setAttribute('playsinline', '1');
+      iframe.setAttribute('webkit-playsinline', '1');
+      const allow = (iframe.getAttribute('allow') || '')
+        .split(';')
+        .map((part) => part.trim())
+        .filter((part) => part && !/^fullscreen$/i.test(part));
+      if (!allow.some((part) => part.toLowerCase() === 'autoplay')) allow.push('autoplay');
+      iframe.setAttribute('allow', allow.join('; '));
+    } catch (_) {}
   };
 
   useEffect(() => {
@@ -3224,6 +3502,9 @@ const Classroom = () => {
             const percentage = Math.round(percentRaw);
 
             setLiveProgress(percentage);
+            if (!scrubbingRef.current) {
+              setPlaybackSeconds(currentTime);
+            }
             try {
               localStorage.setItem(`learnproof_seek_${videoId}`, String(currentTime));
             } catch (e) { }
@@ -3259,13 +3540,18 @@ const Classroom = () => {
               if (triggerable) {
                 console.log(`[Duolingo Checkpoint Auto-Trigger] Activated ${triggerable.id} at ${currentTime.toFixed(1)}s (target: ${triggerable.timestamp}s)`);
                 triggeredCheckpointIdsRef.current.add(triggerable.id);
+                const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+                if (fsEl && String(fsEl.tagName || '').toUpperCase() === 'IFRAME') {
+                  const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
+                  try {
+                    const res = exitFs && exitFs.call(document);
+                    if (res && res.catch) res.catch(() => {});
+                  } catch (_) {}
+                }
+                activeCheckpointRef.current = triggerable;
                 try {
-                  if (typeof player.pauseVideo === 'function') {
-                    player.pauseVideo();
-                  }
+                  if (typeof player.pauseVideo === 'function') player.pauseVideo();
                 } catch (_) {}
-
-                // Present checkpoint directly inside the active view
                 setActiveCheckpoint(triggerable);
               }
             }
@@ -3315,16 +3601,18 @@ const Classroom = () => {
   }, [player, video, videoId, lastSavedProgress, token, nextVideo, showNextOverlay, hasCancelledOverlay]);
 
   const handlePlayerStateChange = async (event) => {
+    // A question or the end screen owns playback. Ignore cued/unstarted autoplay until it closes.
+    if (activeCheckpointRef.current || showCelebrationRef.current) {
+      if (event.data === 1 || event.data === 3) {
+        try { event.target?.pauseVideo?.(); } catch (_) {}
+      }
+      setIsVideoPlaying(false);
+      isCurrentlyPlayingRef.current = false;
+      return;
+    }
+
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
-      if (activeCheckpointRef.current) {
-        try {
-          if (typeof event.target?.pauseVideo === 'function') {
-            event.target.pauseVideo();
-          }
-        } catch (_) {}
-        return;
-      }
       setIsVideoPlaying(true);
       isCurrentlyPlayingRef.current = true;
       showControlsTemporarily();
@@ -3587,18 +3875,17 @@ const Classroom = () => {
         </div>
 
         <div className="flex flex-col flex-1 lg:overflow-y-auto w-full max-w-full bg-white dark:bg-gray-900 transition-colors duration-200">
-          {/* Enhanced Video Player (Supports native HTML5 container fullscreen & iOS/mobile pseudo-fullscreen) */}
+          {/* Enhanced Video Player. Phones use an in-page fullscreen stage so iOS cannot open the system video view. */}
           <div 
             ref={playerContainerRef} 
-            className={`group/player bg-black relative shadow-2xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-              isPseudoFullscreen
-                ? 'fixed inset-0 top-0 left-0 right-0 bottom-0 z-[99999] w-full h-full !aspect-auto !max-w-none !max-h-none !m-0 !rounded-none overscroll-contain'
-                : 'aspect-video w-full'
+            className={`group/player lp-player-shell bg-black relative shadow-2xl flex items-center justify-center shrink-0 overflow-hidden ${
+              isPseudoFullscreen ? 'lp-player-fs' : 'aspect-video w-full transition-all duration-200'
             } ${
               isFullscreen && !controlsVisible ? 'cursor-none' : ''
             } ${
-              activeCheckpoint || showCelebration ? 'overflow-visible' : 'overflow-hidden'
+              handheldPlayer && (activeCheckpoint || showCelebration) ? 'lp-player-suspended' : ''
             }`}
+            style={isPseudoFullscreen ? buildPseudoFullscreenStyle(fsBox) : undefined}
             onMouseMove={handlePlayerMouseMove}
             onMouseEnter={handlePlayerMouseMove}
             onMouseLeave={handlePlayerMouseLeave}
@@ -3612,7 +3899,7 @@ const Classroom = () => {
                   e.stopPropagation();
                   handleFullscreenToggle();
                 }}
-                className="absolute top-3.5 right-3.5 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white text-xs font-bold backdrop-blur-md border border-white/25 shadow-xl active:scale-95 transition-all cursor-pointer select-none"
+                className="lp-fs-exit absolute top-3.5 right-3.5 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white text-xs font-bold backdrop-blur-md border border-white/25 shadow-xl active:scale-95 transition-all cursor-pointer select-none"
                 title="Exit Fullscreen"
               >
                 <Minimize2 size={14} />
@@ -3632,31 +3919,17 @@ const Classroom = () => {
             <YouTube
               key={video.vid}
               videoId={video.vid}
-              opts={{
-                host: 'https://www.youtube.com',
-                width: '100%',
-                height: '100%',
-                playerVars: {
-                  autoplay: 1,
-                  playsinline: 1,
-                  rel: 0,
-                  modestbranding: 0,
-                  enablejsapi: 1,
-                  fs: 1,
-                  origin: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
-                  widget_referrer: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
-                  iv_load_policy: 3,
-                  hl: 'en'
-                }
-              }}
-              className="absolute top-0 left-0 w-full h-full"
-              containerClassName="w-full h-full absolute inset-0 z-10"
+              opts={youtubeOpts}
+              className="lp-yt-frame absolute top-0 left-0 w-full h-full"
+              containerClassName="lp-yt-frame w-full h-full absolute inset-0 z-10"
               onReady={(e) => {
                 playerRef.current = e.target;
                 setPlayer(e.target);
                 setPlayerError(false);
+                lockIframeToInline(e.target);
                 // Allow iframe postMessage channel handshake to settle before issuing playback commands
                 setTimeout(() => {
+                  if (activeCheckpointRef.current || showCelebrationRef.current) return;
                   try {
                     const p = e.target.playVideo();
                     if (p && p.catch) p.catch(() => { });
@@ -3691,12 +3964,19 @@ const Classroom = () => {
                 } catch (_) {}
               }}
               onEnd={() => {
+                showCelebrationRef.current = true;
                 setShowCelebration(true);
                 if (nextVideo) {
                   console.log("Video ended, triggering celebration & next overlay");
                   setShowNextOverlay(true);
-                  // Exit native iframe fullscreen so overlay is visible
-                  if (document.fullscreenElement) {
+                  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+                  const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
+                  if (fsEl && exitFs && String(fsEl.tagName || '').toUpperCase() === 'IFRAME') {
+                    try {
+                      const res = exitFs.call(document);
+                      if (res && res.catch) res.catch(() => {});
+                    } catch (_) {}
+                  } else if (document.fullscreenElement && document.exitFullscreen) {
                     document.exitFullscreen().catch(() => { });
                   }
                 }
@@ -3722,7 +4002,9 @@ const Classroom = () => {
 
             {/* Extension-Style Floating Speed Pill (Desktop & Mobile) */}
             <div className={`absolute top-3 left-3 z-30 flex items-center gap-1 bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white rounded-xl px-2 py-1 shadow-lg transition-all duration-200 select-none ${
-              speedHudVisible ? 'opacity-100 scale-100' : 'opacity-0 group-hover/player:opacity-100 scale-95 group-hover/player:scale-100'
+              speedHudVisible || (handheldPlayer && (!isVideoPlaying || controlsVisible))
+                ? 'opacity-100 scale-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none scale-95 group-hover/player:opacity-100 group-hover/player:pointer-events-auto group-hover/player:scale-100'
             }`}>
               <button
                 type="button"
@@ -3792,7 +4074,101 @@ const Classroom = () => {
               )}
             </AnimatePresence>
 
+            {/* Phone / tablet controls. YouTube's own bar is hidden so its fullscreen button cannot take over. */}
+            {handheldPlayer && !activeCheckpoint && !showCelebration && !playerError && (
+              <>
+                <button
+                  type="button"
+                  className="absolute inset-0 z-20 cursor-pointer bg-transparent touch-manipulation"
+                  aria-label={isVideoPlaying ? 'Pause video' : 'Play video'}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!controlsVisibleRef.current) {
+                      showControlsTemporarily();
+                      return;
+                    }
+                    togglePlayback();
+                  }}
+                />
+                {!isVideoPlaying && (
+                  <div className="pointer-events-none absolute top-1/2 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-black/55 border border-white/25 text-white flex items-center justify-center shadow-xl">
+                    <Play size={28} className="text-white fill-white ml-1" />
+                  </div>
+                )}
+                <div
+                  className={`absolute inset-x-0 bottom-0 z-40 px-3 pt-10 pb-[max(0.55rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 via-black/45 to-transparent transition-opacity duration-300 ${
+                    (!isVideoPlaying || controlsVisible)
+                      ? 'opacity-100'
+                      : 'opacity-0 pointer-events-none'
+                  }`}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
+                    controlsVisibleRef.current = true;
+                    setControlsVisible(true);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white">
+                    <button
+                      type="button"
+                      onClick={togglePlayback}
+                      className="w-9 h-9 shrink-0 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"
+                      aria-label={isVideoPlaying ? 'Pause' : 'Play'}
+                    >
+                      {isVideoPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5 fill-white" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => nudgePlayback(-10)}
+                      className="h-9 px-1.5 shrink-0 rounded-full text-[11px] font-bold text-white/90"
+                      aria-label="Back 10 seconds"
+                    >
+                      -10
+                    </button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(videoDuration || 0, playbackSeconds || 0, 1)}
+                      step={0.1}
+                      value={Math.min(playbackSeconds || 0, Math.max(videoDuration || 0, playbackSeconds || 0, 1))}
+                      onPointerDown={() => { scrubbingRef.current = true; }}
+                      onPointerUp={() => { scrubbingRef.current = false; }}
+                      onPointerCancel={() => { scrubbingRef.current = false; }}
+                      onTouchStart={() => { scrubbingRef.current = true; }}
+                      onTouchEnd={() => { scrubbingRef.current = false; }}
+                      onBlur={() => { scrubbingRef.current = false; }}
+                      onChange={handleMobileSeek}
+                      className="lp-seek flex-1 min-w-0"
+                      aria-label="Seek"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => nudgePlayback(10)}
+                      className="h-9 px-1.5 shrink-0 rounded-full text-[11px] font-bold text-white/90"
+                      aria-label="Forward 10 seconds"
+                    >
+                      +10
+                    </button>
+                    <span className="shrink-0 text-[11px] font-mono tabular-nums text-white/90">
+                      {formatPlaybackClock(playbackSeconds)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleFullscreenToggle}
+                      className="w-9 h-9 shrink-0 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"
+                      aria-label={isFullscreen ? 'Exit fullscreen' : 'Full screen'}
+                    >
+                      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* Fullscreen / Minimize Toggle Button (Below, Icon Only, Same as Image 2, Auto-Hides with Controls) */}
+            {!handheldPlayer && (
             <button
               type="button"
               onMouseEnter={() => {
@@ -3820,6 +4196,7 @@ const Classroom = () => {
                 <Maximize2 size={16} strokeWidth={2.2} className="text-white" />
               )}
             </button>
+            )}
 
             {/* Fallback overlay when YouTube blocks embedding */}
             {playerError && (
@@ -3892,11 +4269,12 @@ const Classroom = () => {
               </div>
             )}
 
-            {/* Duolingo Checkpoint Overlay (Render inside playerContainer only during native HTML5 container fullscreen; otherwise portal to document.body) */}
+            {/* Quiz stays inside the fullscreen stage so it rotates with the video. Otherwise it covers the page. */}
             {activeCheckpoint && (
               createPortal(
                 <DuolingoCheckpointOverlay
                   checkpoint={activeCheckpoint}
+                  contained={Boolean(isFullscreen && playerContainerRef.current)}
                   onAnswer={handleCheckpointAnswer}
                   onContinue={handleCheckpointContinue}
                   onRewind={handleCheckpointRewind}
@@ -3906,14 +4284,16 @@ const Classroom = () => {
                     try {
                       localStorage.setItem('learnproof_checkpoints_enabled', 'false');
                     } catch (_) {}
+                    activeCheckpointRef.current = null;
                     setActiveCheckpoint(null);
-                    if (player && typeof player.playVideo === 'function') {
-                      try { player.playVideo(); } catch (_) {}
+                    const p = playerRef.current || player;
+                    if (p && typeof p.playVideo === 'function') {
+                      try { p.playVideo(); } catch (_) {}
                     }
                     toast("Interactive quizzes turned OFF", { icon: '⏸️' });
                   }}
                 />,
-                (isNativeFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
+                (isFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
               )
             )}
 
@@ -3932,17 +4312,19 @@ const Classroom = () => {
                   streak={userStreak}
                   hasNextVideo={Boolean(nextVideo)}
                   onNextLesson={() => {
+                    showCelebrationRef.current = false;
                     setShowCelebration(false);
                     if (nextVideo) {
                       handleSelectVideo(nextVideo.vid);
                     }
                   }}
                   onReviewNotes={() => {
+                    showCelebrationRef.current = false;
                     setShowCelebration(false);
                     handleSelectTab('intuition');
                   }}
                 />,
-                (isNativeFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
+                (isFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
               )
             )}
           </div>

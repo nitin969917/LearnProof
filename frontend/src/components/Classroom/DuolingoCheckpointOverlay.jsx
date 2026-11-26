@@ -4,8 +4,36 @@ import { CheckCircle2, XCircle, RotateCcw, X, ArrowRight } from 'lucide-react';
 import QuizMathText from '../Common/QuizMathText';
 import { playCorrectSound, playWrongSound, playHeartLostSound } from '../../utils/duoAudio';
 
+function normalizeCheckpointOptions(checkpoint) {
+  let raw = checkpoint?.options ?? checkpoint?.choices;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        raw = JSON.parse(trimmed);
+      } catch (_) {
+        raw = trimmed.split(/\n|\|/).map((part) => part.trim()).filter(Boolean);
+      }
+    } else {
+      raw = trimmed.split(/\n|\|/).map((part) => part.trim()).filter(Boolean);
+    }
+  }
+  if (raw && !Array.isArray(raw) && typeof raw === 'object') {
+    raw = Object.values(raw);
+  }
+  if (!Array.isArray(raw)) raw = [];
+  const options = raw.map((opt) => {
+    if (opt && typeof opt === 'object') {
+      return String(opt.text || opt.label || opt.option || opt.value || opt.title || '').trim();
+    }
+    return String(opt ?? '').trim();
+  }).filter(Boolean);
+  return options.length > 0 ? options : ['True', 'False'];
+}
+
 export default function DuolingoCheckpointOverlay({
   checkpoint,
+  contained = false,
   onAnswer,
   onContinue,
   onRewind,
@@ -16,11 +44,7 @@ export default function DuolingoCheckpointOverlay({
   const [isChecked, setIsChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
 
-  const optionsList = Array.isArray(checkpoint?.options) && checkpoint.options.length > 0
-    ? checkpoint.options
-    : (checkpoint?.options && typeof checkpoint.options === 'object'
-        ? Object.values(checkpoint.options)
-        : (Array.isArray(checkpoint?.choices) ? checkpoint.choices : ["True", "False"]));
+  const optionsList = normalizeCheckpointOptions(checkpoint);
 
   // Keyboard accessibility: 1-4 or A-D to select, Enter to check/continue, Esc to skip
   useEffect(() => {
@@ -174,9 +198,9 @@ export default function DuolingoCheckpointOverlay({
   const totalCount = checkpoint.total || 6;
 
   return (
-    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-full h-[100dvh] z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none touch-manipulation overscroll-contain">
+    <div className={`lp-quiz-backdrop bg-black/80 backdrop-blur-md select-none touch-manipulation ${contained ? 'lp-quiz-backdrop-contained' : ''}`}>
       {/* ── Main Modal Card ── */}
-      <div className="w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[88dvh] sm:max-h-[85vh] overflow-hidden transition-all duration-200 my-auto">
+      <div className="lp-quiz-card w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl">
         
         {/* ── Header ── */}
         <div className="px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between shrink-0 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -220,12 +244,12 @@ export default function DuolingoCheckpointOverlay({
         </div>
 
         {/* ── Question & Options ── */}
-        <div className="p-3.5 sm:p-6 space-y-3 sm:space-y-4 flex-1 overflow-y-auto overscroll-contain custom-scrollbar touch-pan-y">
+        <div className="lp-quiz-body p-3.5 sm:p-6 space-y-3 sm:space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar touch-pan-y">
           <h3 className="text-sm sm:text-base md:text-lg font-extrabold text-gray-900 dark:text-white leading-snug">
             <QuizMathText text={checkpoint.question} />
           </h3>
 
-          <div className="space-y-2 sm:space-y-2.5 pt-0.5">
+          <div className="lp-quiz-options pt-0.5">
             {optionsList.map((option, idx) => {
               const letter = String.fromCharCode(65 + idx);
               const isSelected = selectedOption === option;
@@ -255,7 +279,7 @@ export default function DuolingoCheckpointOverlay({
                   type="button"
                   disabled={isChecked}
                   onClick={() => setSelectedOption(option)}
-                  className={`w-full text-left p-3 sm:p-3.5 rounded-2xl transition-all flex items-center gap-3 cursor-pointer select-none ${cardStyle}`}
+                  className={`lp-quiz-option w-full text-left p-3 sm:p-3.5 rounded-2xl transition-all flex items-center gap-3 cursor-pointer select-none ${cardStyle}`}
                 >
                   <span className={`w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-xl flex items-center justify-center font-mono font-black text-xs sm:text-sm border ${
                     isSelected
@@ -274,7 +298,7 @@ export default function DuolingoCheckpointOverlay({
         </div>
 
         {/* ── Footer ── */}
-        <div className={`px-4 sm:px-6 py-4 border-t transition-colors duration-200 ${
+        <div className={`lp-quiz-footer shrink-0 px-4 sm:px-6 py-4 border-t transition-colors duration-200 ${
           !isChecked
             ? 'bg-gray-50/90 dark:bg-slate-900/90 border-gray-100 dark:border-slate-800'
             : isCorrect
