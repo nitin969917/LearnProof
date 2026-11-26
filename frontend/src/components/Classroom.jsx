@@ -116,40 +116,56 @@ const isHandheldVideoDevice = () => {
 
 const readViewportBox = () => {
   const vv = window.visualViewport;
-  const width = Math.round(vv?.width || window.innerWidth);
-  const height = Math.round(vv?.height || window.innerHeight);
+  const width = Math.ceil(Math.max(
+    window.innerWidth || 0,
+    vv?.width || 0,
+    document.documentElement?.clientWidth || 0
+  ));
+  const height = Math.ceil(Math.max(
+    window.innerHeight || 0,
+    vv?.height || 0,
+    document.documentElement?.clientHeight || 0
+  ));
+  return { width, height };
+};
+
+// A phone in landscape is wider than 16:9, so a full-size iframe makes YouTube paint a
+// black bar down the side. Fit the frame to the screen width: landscape then covers the
+// height (the extra is clipped) and portrait still shows the whole lesson.
+const cover16x9 = (viewportWidth, viewportHeight) => {
+  const width = Math.ceil(viewportWidth) + 4;
+  const height = Math.ceil((width * 9) / 16);
   return {
     width,
     height,
-    offsetTop: vv?.offsetTop || 0,
-    offsetLeft: vv?.offsetLeft || 0,
+    left: Math.round((viewportWidth - width) / 2),
+    top: Math.round((viewportHeight - height) / 2),
   };
 };
 
-// Explicit pixel box from the visual viewport. Percentage heights collapse on iPhone and
-// leave the lesson as a thin strip. The picture stays upright; a landscape phone gets a
-// full-height 16:9 frame from the same box.
 const buildPseudoFullscreenStyle = (box) => {
-  const base = {
+  const width = box?.width || (typeof window !== 'undefined' ? window.innerWidth : 0);
+  const height = box?.height || (typeof window !== 'undefined' ? window.innerHeight : 0);
+  const cover = width > 0 && height > 0 ? cover16x9(width, height) : null;
+  return {
     position: 'fixed',
     zIndex: 2147483000,
     margin: 0,
+    top: 0,
+    left: 0,
+    width: width > 0 ? `${width}px` : '100vw',
+    height: height > 0 ? `${height}px` : '100dvh',
     maxWidth: 'none',
     maxHeight: 'none',
     borderRadius: 0,
     aspectRatio: 'auto',
     background: '#000',
     transform: 'none',
-  };
-  if (!box) {
-    return { ...base, top: 0, left: 0, width: '100vw', height: '100dvh' };
-  }
-  return {
-    ...base,
-    top: `${box.offsetTop || 0}px`,
-    left: `${box.offsetLeft || 0}px`,
-    width: `${box.width}px`,
-    height: `${box.height}px`,
+    overflow: 'hidden',
+    '--lp-cover-top': cover ? `${cover.top}px` : '0px',
+    '--lp-cover-left': cover ? `${cover.left}px` : '0px',
+    '--lp-cover-width': cover ? `${cover.width}px` : '100%',
+    '--lp-cover-height': cover ? `${cover.height}px` : '100%',
   };
 };
 
@@ -4165,37 +4181,6 @@ const Classroom = () => {
                   </div>
                 </div>
               </>
-            )}
-
-            {/* Fullscreen / Minimize Toggle Button (Below, Icon Only, Same as Image 2, Auto-Hides with Controls) */}
-            {!handheldPlayer && (
-            <button
-              type="button"
-              onMouseEnter={() => {
-                if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
-                setControlsVisible(true);
-              }}
-              onMouseLeave={() => {
-                showControlsTemporarily();
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFullscreenToggle();
-              }}
-              className={`absolute bottom-12 sm:bottom-14 right-3.5 sm:right-4 z-40 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-900/65 hover:bg-slate-900/90 text-white backdrop-blur-md border border-white/20 shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer select-none ${
-                (!isVideoPlaying || controlsVisible)
-                  ? 'opacity-100 translate-y-0 pointer-events-auto'
-                  : 'opacity-0 translate-y-1 pointer-events-none group-hover/player:opacity-100 group-hover/player:pointer-events-auto group-hover/player:translate-y-0'
-              }`}
-              title={isFullscreen ? "Exit Fullscreen (f or Esc)" : "Full screen (f)"}
-              aria-label={isFullscreen ? "Exit Fullscreen" : "Full screen"}
-            >
-              {isFullscreen ? (
-                <Minimize2 size={16} strokeWidth={2.2} className="text-white" />
-              ) : (
-                <Maximize2 size={16} strokeWidth={2.2} className="text-white" />
-              )}
-            </button>
             )}
 
             {/* Fallback overlay when YouTube blocks embedding */}

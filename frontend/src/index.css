@@ -1111,9 +1111,37 @@ html, body {
   background-size: 24px 24px;
 }
 
-/* Classroom video: fill the stage on phones, and keep checkpoint questions inside the screen */
-.lp-player-shell iframe,
-.lp-player-shell .lp-yt-frame {
+/* Inline player: the shell is already 16:9, so the iframe fills it. */
+.lp-player-shell:not(.lp-player-fs) .lp-yt-frame,
+.lp-player-shell:not(.lp-player-fs) iframe {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0;
+}
+
+/* Fullscreen: scale the 16:9 frame until it covers the screen. The shell clips the rest. */
+.lp-player-fs {
+  overflow: hidden !important;
+}
+
+.lp-player-fs .lp-yt-frame {
+  position: absolute !important;
+  inset: auto !important;
+  top: var(--lp-cover-top, 0px) !important;
+  left: var(--lp-cover-left, 0px) !important;
+  width: var(--lp-cover-width, 100%) !important;
+  height: var(--lp-cover-height, 100%) !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: 0;
+}
+
+.lp-player-fs iframe {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
