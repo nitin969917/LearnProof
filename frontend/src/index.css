@@ -1111,12 +1111,10 @@ html, body {
   background-size: 24px 24px;
 }
 
-/* Normal player fills its 16:9 box. Fullscreen centers that box on the black screen. */
+/* Normal player: the iframe fills its own 16:9 box. */
 .lp-player-shell:not(.lp-player-fs) .lp-yt-frame {
   position: absolute !important;
   inset: 0 !important;
-  top: 0 !important;
-  left: 0 !important;
   width: 100% !important;
   height: 100% !important;
   transform: none !important;
@@ -1124,16 +1122,20 @@ html, body {
   border: 0;
 }
 
+/* Fullscreen: pure CSS, no measured pixel values. The shell is a flex box that centers the 16:9
+   frame both ways. The frame is as wide as the screen allows, or as tall as the screen allows,
+   whichever fits, so no part of the picture is cropped and both sides get equal space. */
 .lp-player-fs .lp-yt-frame {
-  position: absolute !important;
+  position: relative !important;
   inset: auto !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: var(--lp-cover-width, 100%) !important;
-  height: var(--lp-cover-height, 100%) !important;
-  transform: translate(-50%, -50%) !important;
+  flex: none !important;
+  z-index: 10;
+  width: min(100%, calc((100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) * 16 / 9)) !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
   max-width: none !important;
   max-height: none !important;
+  transform: none !important;
   margin: 0 !important;
   border: 0;
 }
@@ -1162,9 +1164,19 @@ html, body {
   max-width: none !important;
   max-height: none !important;
   margin: 0 !important;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px) !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   border-radius: 0 !important;
   overflow: hidden !important;
   background: #000 !important;
+  aspect-ratio: auto !important;
   z-index: 2147483000 !important;
 }
 

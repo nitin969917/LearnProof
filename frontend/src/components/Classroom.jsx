@@ -121,52 +121,6 @@ const isHandheldVideoDevice = () => {
   return false;
 };
 
-// Fit the whole 16:9 lesson inside the screen. Portrait stays full width with the picture
-// centered. Landscape uses the full height. Nothing is zoomed or cropped.
-const cover16x9 = (boxWidth, boxHeight) => {
-  const ratio = 16 / 9;
-  const w = Math.max(1, boxWidth);
-  const h = Math.max(1, boxHeight);
-  let width = w;
-  let height = width / ratio;
-  if (height > h) {
-    height = h;
-    width = height * ratio;
-  }
-  width = Math.round(width);
-  height = Math.round(height);
-  return {
-    width,
-    height,
-    left: Math.round((w - width) / 2),
-    top: Math.round((h - height) / 2),
-  };
-};
-
-const coverStyleVars = (cover) => ({
-  '--lp-cover-width': `${cover.width}px`,
-  '--lp-cover-height': `${cover.height}px`,
-});
-
-const buildPseudoFullscreenStyle = () => ({
-    position: 'fixed',
-    zIndex: 2147483000,
-    margin: 0,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100vw',
-    height: '100dvh',
-    maxWidth: 'none',
-    maxHeight: 'none',
-    borderRadius: 0,
-    aspectRatio: 'auto',
-    background: '#000',
-    transform: 'none',
-    overflow: 'hidden',
-});
-
 const INDIAN_LANGS = [
   'English', 'Hindi', 'Marathi', 'Bengali', 'Telugu',
   'Tamil', 'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Malayalam'
@@ -814,7 +768,6 @@ const Classroom = () => {
   const scrubbingRef = useRef(false);
   const statusBarHiddenRef = useRef(false);
   const [handheldPlayer] = useState(() => isHandheldVideoDevice());
-  const [fsFrameCover, setFsFrameCover] = useState(null);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
 
   const youtubeOpts = useMemo(() => {
@@ -1870,50 +1823,9 @@ const Classroom = () => {
     };
   }, [isPseudoFullscreen]);
 
-  useEffect(() => {
-    const el = playerContainerRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const apply = () => {
-      const rect = el.getBoundingClientRect();
-      if (rect.width < 2 || rect.height < 2) return;
-      const frame = el.querySelector('.lp-yt-frame');
-      if (!isPseudoFullscreenRef.current) {
-        if (frame) {
-          ['top', 'left', 'width', 'height', 'inset', 'transform', 'margin'].forEach((prop) => {
-            frame.style.removeProperty(prop);
-          });
-        }
-        return;
-      }
-      const cover = cover16x9(rect.width, rect.height);
-      setFsFrameCover(coverStyleVars(cover));
-      if (frame) {
-        frame.style.setProperty('position', 'absolute', 'important');
-        frame.style.setProperty('inset', 'auto', 'important');
-        frame.style.setProperty('top', '50%', 'important');
-        frame.style.setProperty('left', '50%', 'important');
-        frame.style.setProperty('width', `${cover.width}px`, 'important');
-        frame.style.setProperty('height', `${cover.height}px`, 'important');
-        frame.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
-        frame.style.setProperty('margin', '0', 'important');
-      }
-    };
-    apply();
-    const observer = new ResizeObserver(apply);
-    observer.observe(el);
-    window.addEventListener('orientationchange', apply);
-    window.visualViewport?.addEventListener('resize', apply);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('orientationchange', apply);
-      window.visualViewport?.removeEventListener('resize', apply);
-    };
-  }, [video?.vid, isPseudoFullscreen]);
-
   const exitPseudoFullscreen = () => {
     isPseudoFullscreenRef.current = false;
     setIsPseudoFullscreen(false);
-    setFsFrameCover(null);
     cleanupFullscreenStyles();
   };
 
@@ -3949,14 +3861,6 @@ const Classroom = () => {
             } ${
               handheldPlayer && (activeCheckpoint || showCelebration) ? 'lp-player-suspended' : ''
             }`}
-            style={{
-              ...(isPseudoFullscreen
-                ? {
-                    ...buildPseudoFullscreenStyle(),
-                    ...(fsFrameCover || coverStyleVars(cover16x9(window.innerWidth, window.innerHeight))),
-                  }
-                : {}),
-            }}
             onMouseMove={handlePlayerMouseMove}
             onMouseEnter={handlePlayerMouseMove}
             onMouseLeave={handlePlayerMouseLeave}
