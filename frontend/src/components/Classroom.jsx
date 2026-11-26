@@ -102,59 +102,63 @@ const formatPlaybackClock = (seconds) => {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 };
 
-// Phones, tablets, and the Capacitor app. Desktop (fine pointer, wide window) stays on the native player.
+// Phones, tablets, and the Capacitor app. A mouse-driven desktop stays on YouTube's player.
 const isHandheldVideoDevice = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
   const iOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const android = /Android/i.test(ua);
   const nativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
-  const coarse = window.matchMedia?.('(pointer: coarse)')?.matches;
-  const narrow = window.matchMedia?.('(max-width: 1024px)')?.matches;
-  return Boolean(nativeApp || iOS || android || (coarse && narrow));
+  const coarse = window.matchMedia?.('(pointer: coarse), (any-pointer: coarse)')?.matches;
+  const finePointer = window.matchMedia?.('(pointer: fine)')?.matches;
+  const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+  if (nativeApp || iOS || android) return true;
+  // Desktop-site mode on a phone still has a coarse pointer and no mouse.
+  if (coarse && !finePointer) return true;
+  if (touch && !finePointer) return true;
+  return false;
 };
 
-const readViewportBox = () => {
-  const vv = window.visualViewport;
-  const width = Math.ceil(Math.max(
-    window.innerWidth || 0,
-    vv?.width || 0,
-    document.documentElement?.clientWidth || 0
-  ));
-  const height = Math.ceil(Math.max(
-    window.innerHeight || 0,
-    vv?.height || 0,
-    document.documentElement?.clientHeight || 0
-  ));
-  return { width, height };
-};
-
-// A phone in landscape is wider than 16:9, so a full-size iframe makes YouTube paint a
-// black bar down the side. Fit the frame to the screen width: landscape then covers the
-// height (the extra is clipped) and portrait still shows the whole lesson.
-const cover16x9 = (viewportWidth, viewportHeight) => {
-  const width = Math.ceil(viewportWidth) + 4;
-  const height = Math.ceil((width * 9) / 16);
+// Size a 16:9 frame over the player box. fill=true also covers a tall screen, so fullscreen
+// has no black bars on the sides or the top. A small overscan hides the hairline gap some phones leave.
+const cover16x9 = (boxWidth, boxHeight, fill) => {
+  const ratio = 16 / 9;
+  const w = Math.max(1, boxWidth);
+  const h = Math.max(1, boxHeight);
+  let width = w;
+  let height = w / ratio;
+  if (fill && height < h) {
+    height = h;
+    width = h * ratio;
+  }
+  const pad = Math.max(12, Math.round(Math.min(w, h) * 0.035));
+  width = Math.ceil(width + pad);
+  height = Math.ceil(height + pad);
   return {
     width,
     height,
-    left: Math.round((viewportWidth - width) / 2),
-    top: Math.round((viewportHeight - height) / 2),
+    left: (w - width) / 2,
+    top: (h - height) / 2,
   };
 };
 
-const buildPseudoFullscreenStyle = (box) => {
-  const width = box?.width || (typeof window !== 'undefined' ? window.innerWidth : 0);
-  const height = box?.height || (typeof window !== 'undefined' ? window.innerHeight : 0);
-  const cover = width > 0 && height > 0 ? cover16x9(width, height) : null;
-  return {
+const coverStyleVars = (cover) => ({
+  '--lp-cover-top': `${cover.top}px`,
+  '--lp-cover-left': `${cover.left}px`,
+  '--lp-cover-width': `${cover.width}px`,
+  '--lp-cover-height': `${cover.height}px`,
+});
+
+const buildPseudoFullscreenStyle = () => ({
     position: 'fixed',
     zIndex: 2147483000,
     margin: 0,
     top: 0,
     left: 0,
-    width: width > 0 ? `${width}px` : '100vw',
-    height: height > 0 ? `${height}px` : '100dvh',
+    right: 0,
+    bottom: 0,
+    width: '100vw',
+    height: '100dvh',
     maxWidth: 'none',
     maxHeight: 'none',
     borderRadius: 0,
@@ -162,12 +166,7 @@ const buildPseudoFullscreenStyle = (box) => {
     background: '#000',
     transform: 'none',
     overflow: 'hidden',
-    '--lp-cover-top': cover ? `${cover.top}px` : '0px',
-    '--lp-cover-left': cover ? `${cover.left}px` : '0px',
-    '--lp-cover-width': cover ? `${cover.width}px` : '100%',
-    '--lp-cover-height': cover ? `${cover.height}px` : '100%',
-  };
-};
+});
 
 const INDIAN_LANGS = [
   'English', 'Hindi', 'Marathi', 'Bengali', 'Telugu',
@@ -816,7 +815,7 @@ const Classroom = () => {
   const scrubbingRef = useRef(false);
   const statusBarHiddenRef = useRef(false);
   const [handheldPlayer] = useState(() => isHandheldVideoDevice());
-  const [fsBox, setFsBox] = useState(null);
+  const [inlineCoverVars, setInlineCoverVars] = useState(null);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
 
   const youtubeOpts = useMemo(() => {
@@ -831,9 +830,9 @@ const Classroom = () => {
         rel: 0,
         modestbranding: handheldPlayer ? 1 : 0,
         enablejsapi: 1,
-        // Handheld: hide YouTube's own fullscreen button. On iPhone it opens the system
-        // video view, which letterboxes the lesson and paints over our quiz.
-        fs: handheldPlayer ? 0 : 1,
+        // Always hide YouTube's fullscreen button. It fullscreens only the iframe, which
+        // cannot show a question, so the player had to leave fullscreen when a quiz opened.
+        fs: 0,
         controls: handheldPlayer ? 0 : 1,
         disablekb: handheldPlayer ? 1 : 0,
         origin,
@@ -1872,26 +1871,28 @@ const Classroom = () => {
   }, [isPseudoFullscreen]);
 
   useEffect(() => {
-    if (!isPseudoFullscreen) return undefined;
-    const update = () => setFsBox(readViewportBox());
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('orientationchange', update);
-    const vv = window.visualViewport;
-    vv?.addEventListener('resize', update);
-    vv?.addEventListener('scroll', update);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('orientationchange', update);
-      vv?.removeEventListener('resize', update);
-      vv?.removeEventListener('scroll', update);
+    const el = playerContainerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const apply = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) return;
+      setInlineCoverVars(coverStyleVars(cover16x9(rect.width, rect.height, isPseudoFullscreenRef.current)));
     };
-  }, [isPseudoFullscreen]);
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+    window.addEventListener('orientationchange', apply);
+    window.visualViewport?.addEventListener('resize', apply);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('orientationchange', apply);
+      window.visualViewport?.removeEventListener('resize', apply);
+    };
+  }, [video?.vid, isPseudoFullscreen]);
 
   const exitPseudoFullscreen = () => {
     isPseudoFullscreenRef.current = false;
     setIsPseudoFullscreen(false);
-    setFsBox(null);
     cleanupFullscreenStyles();
   };
 
@@ -1907,18 +1908,17 @@ const Classroom = () => {
       document.body.style.right = '0';
       document.body.style.width = '100%';
     } catch (_) {}
-    setFsBox(readViewportBox());
     setIsPseudoFullscreen(true);
     hideStatusBarForVideo();
 
     // Ask the phone to turn landscape during the tap. iOS often rejects this; the stage
-    // still fills the screen, and a manual rotation is picked up by the viewport listener.
+    // still fills the screen, and a manual rotation is picked up by the resize observer.
     try {
       const lockResult = screen.orientation && typeof screen.orientation.lock === 'function'
         ? screen.orientation.lock('landscape')
         : null;
       if (lockResult && typeof lockResult.then === 'function') {
-        lockResult.then(() => setFsBox(readViewportBox())).catch(() => {});
+        lockResult.catch(() => {});
       }
     } catch (_) {}
   };
@@ -2017,7 +2017,6 @@ const Classroom = () => {
   };
 
   const lockIframeToInline = (playerInstance) => {
-    if (!handheldPlayer) return;
     try {
       const iframe = playerInstance?.getIframe?.();
       if (!iframe) return;
@@ -3556,12 +3555,20 @@ const Classroom = () => {
               if (triggerable) {
                 console.log(`[Duolingo Checkpoint Auto-Trigger] Activated ${triggerable.id} at ${currentTime.toFixed(1)}s (target: ${triggerable.timestamp}s)`);
                 triggeredCheckpointIdsRef.current.add(triggerable.id);
+                // Stay in fullscreen. If only the YouTube iframe is fullscreen, move that
+                // fullscreen onto the player so the question can render inside it.
+                const container = playerContainerRef.current;
                 const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
-                if (fsEl && String(fsEl.tagName || '').toUpperCase() === 'IFRAME') {
+                if (container && fsEl && fsEl !== container) {
                   const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
+                  const requestFs = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen;
                   try {
-                    const res = exitFs && exitFs.call(document);
-                    if (res && res.catch) res.catch(() => {});
+                    const exited = exitFs ? exitFs.call(document) : Promise.resolve();
+                    Promise.resolve(exited).then(() => {
+                      if (!requestFs) return;
+                      const entered = requestFs.call(container);
+                      if (entered && entered.catch) entered.catch(() => {});
+                    }).catch(() => {});
                   } catch (_) {}
                 }
                 activeCheckpointRef.current = triggerable;
@@ -3901,7 +3908,10 @@ const Classroom = () => {
             } ${
               handheldPlayer && (activeCheckpoint || showCelebration) ? 'lp-player-suspended' : ''
             }`}
-            style={isPseudoFullscreen ? buildPseudoFullscreenStyle(fsBox) : undefined}
+            style={{
+              ...(isPseudoFullscreen ? buildPseudoFullscreenStyle() : {}),
+              ...(inlineCoverVars || {}),
+            }}
             onMouseMove={handlePlayerMouseMove}
             onMouseEnter={handlePlayerMouseMove}
             onMouseLeave={handlePlayerMouseLeave}
@@ -3985,16 +3995,6 @@ const Classroom = () => {
                 if (nextVideo) {
                   console.log("Video ended, triggering celebration & next overlay");
                   setShowNextOverlay(true);
-                  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
-                  const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
-                  if (fsEl && exitFs && String(fsEl.tagName || '').toUpperCase() === 'IFRAME') {
-                    try {
-                      const res = exitFs.call(document);
-                      if (res && res.catch) res.catch(() => {});
-                    } catch (_) {}
-                  } else if (document.fullscreenElement && document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => { });
-                  }
                 }
               }}
               onError={() => setPlayerError(true)}
@@ -4181,6 +4181,37 @@ const Classroom = () => {
                   </div>
                 </div>
               </>
+            )}
+
+            {/* One fullscreen control. It fullscreens the whole player, so a question can open on top without leaving fullscreen. */}
+            {!handheldPlayer && (
+            <button
+              type="button"
+              onMouseEnter={() => {
+                if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
+                setControlsVisible(true);
+              }}
+              onMouseLeave={() => {
+                showControlsTemporarily();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFullscreenToggle();
+              }}
+              className={`absolute bottom-12 sm:bottom-14 right-3.5 sm:right-4 z-40 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-900/65 hover:bg-slate-900/90 text-white backdrop-blur-md border border-white/20 shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer select-none ${
+                (!isVideoPlaying || controlsVisible)
+                  ? 'opacity-100 translate-y-0 pointer-events-auto'
+                  : 'opacity-0 translate-y-1 pointer-events-none group-hover/player:opacity-100 group-hover/player:pointer-events-auto group-hover/player:translate-y-0'
+              }`}
+              title={isFullscreen ? "Exit Fullscreen (f or Esc)" : "Full screen (f)"}
+              aria-label={isFullscreen ? "Exit Fullscreen" : "Full screen"}
+            >
+              {isFullscreen ? (
+                <Minimize2 size={16} strokeWidth={2.2} className="text-white" />
+              ) : (
+                <Maximize2 size={16} strokeWidth={2.2} className="text-white" />
+              )}
+            </button>
             )}
 
             {/* Fallback overlay when YouTube blocks embedding */}

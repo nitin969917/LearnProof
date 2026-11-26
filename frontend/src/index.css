@@ -1111,24 +1111,8 @@ html, body {
   background-size: 24px 24px;
 }
 
-/* Inline player: the shell is already 16:9, so the iframe fills it. */
-.lp-player-shell:not(.lp-player-fs) .lp-yt-frame,
-.lp-player-shell:not(.lp-player-fs) iframe {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  border: 0;
-}
-
-/* Fullscreen: scale the 16:9 frame until it covers the screen. The shell clips the rest. */
-.lp-player-fs {
-  overflow: hidden !important;
-}
-
-.lp-player-fs .lp-yt-frame {
+/* The 16:9 frame is sized in JS to cover the player, so phones don't keep a black bar. */
+.lp-player-shell .lp-yt-frame {
   position: absolute !important;
   inset: auto !important;
   top: var(--lp-cover-top, 0px) !important;
@@ -1141,7 +1125,7 @@ html, body {
   border: 0;
 }
 
-.lp-player-fs iframe {
+.lp-player-shell iframe {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
@@ -1149,6 +1133,23 @@ html, body {
   max-width: none !important;
   max-height: none !important;
   border: 0;
+}
+
+/* Fullscreen stage always matches the visible screen, including short mobile browsers. */
+.lp-player-fs {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: #000 !important;
+  z-index: 2147483000 !important;
 }
 
 .lp-player-suspended iframe {
