@@ -1111,7 +1111,7 @@ html, body {
   background-size: 24px 24px;
 }
 
-/* The 16:9 frame is sized in JS to cover the player, so phones don't keep a black bar. */
+/* The 16:9 frame is sized in JS to fit the whole lesson, with no cropped edges. */
 .lp-player-shell .lp-yt-frame {
   position: absolute !important;
   inset: auto !important;

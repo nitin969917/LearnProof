@@ -119,26 +119,25 @@ const isHandheldVideoDevice = () => {
   return false;
 };
 
-// Size a 16:9 frame over the player box. fill=true also covers a tall screen, so fullscreen
-// has no black bars on the sides or the top. A small overscan hides the hairline gap some phones leave.
-const cover16x9 = (boxWidth, boxHeight, fill) => {
+// Fit the whole 16:9 lesson inside the screen. Portrait stays full width with the picture
+// centered. Landscape uses the full height. Nothing is zoomed or cropped.
+const cover16x9 = (boxWidth, boxHeight) => {
   const ratio = 16 / 9;
   const w = Math.max(1, boxWidth);
   const h = Math.max(1, boxHeight);
   let width = w;
-  let height = w / ratio;
-  if (fill && height < h) {
+  let height = width / ratio;
+  if (height > h) {
     height = h;
-    width = h * ratio;
+    width = height * ratio;
   }
-  const pad = Math.max(12, Math.round(Math.min(w, h) * 0.035));
-  width = Math.ceil(width + pad);
-  height = Math.ceil(height + pad);
+  width = Math.round(width);
+  height = Math.round(height);
   return {
     width,
     height,
-    left: (w - width) / 2,
-    top: (h - height) / 2,
+    left: Math.round((w - width) / 2),
+    top: Math.round((h - height) / 2),
   };
 };
 
@@ -1876,7 +1875,7 @@ const Classroom = () => {
     const apply = () => {
       const rect = el.getBoundingClientRect();
       if (rect.width < 2 || rect.height < 2) return;
-      setInlineCoverVars(coverStyleVars(cover16x9(rect.width, rect.height, isPseudoFullscreenRef.current)));
+      setInlineCoverVars(coverStyleVars(cover16x9(rect.width, rect.height)));
     };
     apply();
     const observer = new ResizeObserver(apply);
