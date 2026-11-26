@@ -144,8 +144,6 @@ const cover16x9 = (boxWidth, boxHeight) => {
 };
 
 const coverStyleVars = (cover) => ({
-  '--lp-cover-top': `${cover.top}px`,
-  '--lp-cover-left': `${cover.left}px`,
   '--lp-cover-width': `${cover.width}px`,
   '--lp-cover-height': `${cover.height}px`,
 });
@@ -816,7 +814,6 @@ const Classroom = () => {
   const scrubbingRef = useRef(false);
   const statusBarHiddenRef = useRef(false);
   const [handheldPlayer] = useState(() => isHandheldVideoDevice());
-  const [inlineCoverVars, setInlineCoverVars] = useState(null);
   const [fsFrameCover, setFsFrameCover] = useState(null);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
 
@@ -1879,18 +1876,25 @@ const Classroom = () => {
     const apply = () => {
       const rect = el.getBoundingClientRect();
       if (rect.width < 2 || rect.height < 2) return;
-      const cover = cover16x9(rect.width, rect.height);
-      const vars = coverStyleVars(cover);
-      if (isPseudoFullscreenRef.current) setFsFrameCover(vars);
-      else setInlineCoverVars(vars);
       const frame = el.querySelector('.lp-yt-frame');
+      if (!isPseudoFullscreenRef.current) {
+        if (frame) {
+          ['top', 'left', 'width', 'height', 'inset', 'transform', 'margin'].forEach((prop) => {
+            frame.style.removeProperty(prop);
+          });
+        }
+        return;
+      }
+      const cover = cover16x9(rect.width, rect.height);
+      setFsFrameCover(coverStyleVars(cover));
       if (frame) {
         frame.style.setProperty('position', 'absolute', 'important');
         frame.style.setProperty('inset', 'auto', 'important');
-        frame.style.setProperty('top', `${cover.top}px`, 'important');
-        frame.style.setProperty('left', `${cover.left}px`, 'important');
+        frame.style.setProperty('top', '50%', 'important');
+        frame.style.setProperty('left', '50%', 'important');
         frame.style.setProperty('width', `${cover.width}px`, 'important');
         frame.style.setProperty('height', `${cover.height}px`, 'important');
+        frame.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
         frame.style.setProperty('margin', '0', 'important');
       }
     };
@@ -3951,7 +3955,7 @@ const Classroom = () => {
                     ...buildPseudoFullscreenStyle(),
                     ...(fsFrameCover || coverStyleVars(cover16x9(window.innerWidth, window.innerHeight))),
                   }
-                : (inlineCoverVars || {})),
+                : {}),
             }}
             onMouseMove={handlePlayerMouseMove}
             onMouseEnter={handlePlayerMouseMove}
