@@ -1883,21 +1883,15 @@ const Classroom = () => {
       const vars = coverStyleVars(cover);
       if (isPseudoFullscreenRef.current) setFsFrameCover(vars);
       else setInlineCoverVars(vars);
-      const pin = (node) => {
-        if (!node) return;
-        node.style.setProperty('position', 'absolute', 'important');
-        node.style.setProperty('inset', 'auto', 'important');
-        node.style.setProperty('top', `${cover.top}px`, 'important');
-        node.style.setProperty('left', `${cover.left}px`, 'important');
-        node.style.setProperty('width', `${cover.width}px`, 'important');
-        node.style.setProperty('height', `${cover.height}px`, 'important');
-        node.style.setProperty('margin', '0', 'important');
-      };
-      pin(el.querySelector('.lp-yt-frame'));
-      pin(el.querySelector('iframe'));
-      const p = playerRef.current;
-      if (p && typeof p.setSize === 'function') {
-        try { p.setSize(Math.round(cover.width), Math.round(cover.height)); } catch (_) {}
+      const frame = el.querySelector('.lp-yt-frame');
+      if (frame) {
+        frame.style.setProperty('position', 'absolute', 'important');
+        frame.style.setProperty('inset', 'auto', 'important');
+        frame.style.setProperty('top', `${cover.top}px`, 'important');
+        frame.style.setProperty('left', `${cover.left}px`, 'important');
+        frame.style.setProperty('width', `${cover.width}px`, 'important');
+        frame.style.setProperty('height', `${cover.height}px`, 'important');
+        frame.style.setProperty('margin', '0', 'important');
       }
     };
     apply();
