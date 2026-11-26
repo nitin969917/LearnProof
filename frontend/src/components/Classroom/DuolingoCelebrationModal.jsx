@@ -20,6 +20,7 @@ const ConfettiParticle = ({ delay, x, color }) => (
 
 export default function DuolingoCelebrationModal({
   isOpen,
+  inline = false,
   videoTitle,
   xpEarned = 45,
   accuracy = 100,
@@ -42,9 +43,13 @@ export default function DuolingoCelebrationModal({
   ];
 
   return (
-    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-full h-full z-[999999] bg-black/85 backdrop-blur-lg flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none">
-      {/* Confetti Explosion */}
-      {Array.from({ length: 30 }).map((_, i) => (
+    <div
+      id={inline ? 'classroom-celebration' : undefined}
+      className={inline
+        ? 'relative w-full mb-4 flex justify-center overflow-hidden'
+        : 'fixed inset-0 top-0 left-0 right-0 bottom-0 w-full h-full z-[999999] bg-black/85 backdrop-blur-lg flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none'}
+    >
+      {!inline && Array.from({ length: 30 }).map((_, i) => (
         <ConfettiParticle
           key={i}
           delay={i * 0.05}

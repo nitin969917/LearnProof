@@ -1123,12 +1123,6 @@ html, body {
   border: 0;
 }
 
-.lp-player-suspended iframe {
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
 .lp-player-fs .lp-fs-exit {
   top: max(0.875rem, env(safe-area-inset-top));
   right: max(0.875rem, env(safe-area-inset-right));

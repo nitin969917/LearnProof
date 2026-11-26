@@ -34,6 +34,7 @@ function normalizeCheckpointOptions(checkpoint) {
 export default function DuolingoCheckpointOverlay({
   checkpoint,
   contained = false,
+  inline = false,
   onAnswer,
   onContinue,
   onRewind,
@@ -198,7 +199,12 @@ export default function DuolingoCheckpointOverlay({
   const totalCount = checkpoint.total || 6;
 
   return (
-    <div className={`lp-quiz-backdrop bg-black/80 backdrop-blur-md select-none touch-manipulation ${contained ? 'lp-quiz-backdrop-contained' : ''}`}>
+    <div
+      id={inline ? 'classroom-checkpoint' : undefined}
+      className={inline
+        ? 'relative w-full mb-4'
+        : `lp-quiz-backdrop bg-black/80 backdrop-blur-md select-none touch-manipulation ${contained ? 'lp-quiz-backdrop-contained' : ''}`}
+    >
       {/* ── Main Modal Card ── */}
       <div className="lp-quiz-card w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl">
         

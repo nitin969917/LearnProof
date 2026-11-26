@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
@@ -43,10 +42,7 @@ import {
   Grid,
   Moon,
   Maximize,
-  Minimize,
-  Maximize2,
-  Minimize2,
-  Pause
+  Minimize
 } from "lucide-react";
 import ClassroomCodeEditor from "./Classroom/ClassroomCodeEditor";
 import HandwrittenNotebookView from "./Dashboard/HandwrittenNotebookView";
@@ -95,13 +91,6 @@ const formatVideoDuration = (seconds) => {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 };
 
-const formatPlaybackClock = (seconds) => {
-  const total = Math.max(0, Math.floor(Number(seconds) || 0));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s < 10 ? '0' : ''}${s}`;
-};
-
 // Phones, tablets, and the Capacitor app. Desktop (fine pointer, wide window) stays on the native player.
 const isHandheldVideoDevice = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
@@ -123,33 +112,6 @@ const readViewportBox = () => {
     height,
     offsetTop: vv?.offsetTop || 0,
     offsetLeft: vv?.offsetLeft || 0,
-  };
-};
-
-// Explicit pixel box from the visual viewport. Percentage heights collapse on iPhone and
-// leave the lesson as a thin strip. The picture stays upright; a landscape phone gets a
-// full-height 16:9 frame from the same box.
-const buildPseudoFullscreenStyle = (box) => {
-  const base = {
-    position: 'fixed',
-    zIndex: 2147483000,
-    margin: 0,
-    maxWidth: 'none',
-    maxHeight: 'none',
-    borderRadius: 0,
-    aspectRatio: 'auto',
-    background: '#000',
-    transform: 'none',
-  };
-  if (!box) {
-    return { ...base, top: 0, left: 0, width: '100vw', height: '100dvh' };
-  }
-  return {
-    ...base,
-    top: `${box.offsetTop || 0}px`,
-    left: `${box.offsetLeft || 0}px`,
-    width: `${box.width}px`,
-    height: `${box.height}px`,
   };
 };
 
@@ -765,7 +727,7 @@ const Classroom = () => {
   const [hasSeeked, setHasSeeked] = useState(false);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [hasCancelledOverlay, setHasCancelledOverlay] = useState(false);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [, setIsVideoPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(() => {
     try {
       const saved = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
@@ -776,7 +738,7 @@ const Classroom = () => {
     }
   });
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [speedHudVisible, setSpeedHudVisible] = useState(false);
+  const [, setSpeedHudVisible] = useState(false);
   const speedHudTimeoutRef = useRef(null);
   const speedMenuRef = useRef(null);
   const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -791,17 +753,15 @@ const Classroom = () => {
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const isFullscreen = isNativeFullscreen || isPseudoFullscreen;
-  const [controlsVisible, setControlsVisible] = useState(true);
+  const [, setControlsVisible] = useState(true);
   const controlsHideTimeoutRef = useRef(null);
   const isCurrentlyPlayingRef = useRef(false);
   const controlsVisibleRef = useRef(true);
   const isPseudoFullscreenRef = useRef(false);
   const scrollLockYRef = useRef(0);
-  const scrubbingRef = useRef(false);
   const statusBarHiddenRef = useRef(false);
   const [handheldPlayer] = useState(() => isHandheldVideoDevice());
-  const [fsBox, setFsBox] = useState(null);
-  const [playbackSeconds, setPlaybackSeconds] = useState(0);
+  const [, setFsBox] = useState(null);
 
   const youtubeOpts = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com';
@@ -813,20 +773,16 @@ const Classroom = () => {
         autoplay: 1,
         playsinline: 1,
         rel: 0,
-        modestbranding: handheldPlayer ? 1 : 0,
         enablejsapi: 1,
-        // Handheld: hide YouTube's own fullscreen button. On iPhone it opens the system
-        // video view, which letterboxes the lesson and paints over our quiz.
-        fs: handheldPlayer ? 0 : 1,
-        controls: handheldPlayer ? 0 : 1,
-        disablekb: handheldPlayer ? 1 : 0,
+        fs: 1,
+        controls: 1,
         origin,
         widget_referrer: origin,
         iv_load_policy: 3,
         hl: 'en',
       },
     };
-  }, [handheldPlayer]);
+  }, []);
 
   const showControlsTemporarily = () => {
     controlsVisibleRef.current = true;
@@ -935,54 +891,23 @@ const Classroom = () => {
     showCelebrationRef.current = showCelebration;
   }, [showCelebration]);
 
-  // Keep the lesson paused for the whole time a question is on screen.
-  // A single pauseVideo() is ignored on iOS often enough that the quiz appears to "sometimes" pause.
+  // Pause once when a question opens. Do not keep pausing: the learner must still be
+  // able to press YouTube's own play button. Covering or locking the player is not allowed.
   useEffect(() => {
-    if (!activeCheckpoint && !showCelebration) return undefined;
-    const pauseIfPlaying = () => {
-      if (!activeCheckpointRef.current && !showCelebrationRef.current) return;
+    if (!activeCheckpoint) return undefined;
+    const pause = () => {
       const p = playerRef.current;
       if (!p || typeof p.pauseVideo !== 'function') return;
       try { p.pauseVideo(); } catch (_) {}
     };
-    pauseIfPlaying();
-    const timers = [80, 220, 500, 1000, 1800].map((ms) => setTimeout(pauseIfPlaying, ms));
-    const interval = setInterval(pauseIfPlaying, 400);
-    return () => {
-      timers.forEach(clearTimeout);
-      clearInterval(interval);
-    };
-  }, [activeCheckpoint, showCelebration]);
-
-  // Keep a phone quiz pinned to the screen. iOS otherwise scrolls the page under the question.
-  useEffect(() => {
-    if (!handheldPlayer || isPseudoFullscreenRef.current) return undefined;
-    if (!activeCheckpoint && !showCelebration) return undefined;
-    const y = window.scrollY || window.pageYOffset || 0;
-    const prev = {
-      overflow: document.body.style.overflow,
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      right: document.body.style.right,
-      width: document.body.style.width,
-    };
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${y}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.width = '100%';
-    return () => {
-      document.body.style.overflow = prev.overflow;
-      document.body.style.position = prev.position;
-      document.body.style.top = prev.top;
-      document.body.style.left = prev.left;
-      document.body.style.right = prev.right;
-      document.body.style.width = prev.width;
-      window.scrollTo(0, y);
-    };
-  }, [activeCheckpoint, showCelebration, handheldPlayer]);
+    pause();
+    const timers = [180, 450].map((ms) => setTimeout(pause, ms));
+    const node = document.getElementById('classroom-checkpoint');
+    if (node && typeof node.scrollIntoView === 'function') {
+      node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [activeCheckpoint]);
 
   useEffect(() => {
     playerRef.current = player;
@@ -1167,12 +1092,6 @@ const Classroom = () => {
             p.seekTo(t + 5, true);
           }).catch(() => {});
         }
-      } else if (key === 'f') {
-        e.preventDefault();
-        handleFullscreenToggle();
-      } else if (e.key === 'Escape' && isFullscreen) {
-        e.preventDefault();
-        handleFullscreenToggle();
       }
     };
 
@@ -1963,58 +1882,6 @@ const Classroom = () => {
     } else {
       enterPseudoFullscreen();
     }
-  };
-
-  const togglePlayback = () => {
-    const p = playerRef.current;
-    if (!p || activeCheckpointRef.current || showCelebrationRef.current) return;
-    try {
-      if (isCurrentlyPlayingRef.current) p.pauseVideo();
-      else if (typeof p.playVideo === 'function') p.playVideo();
-    } catch (_) {}
-    showControlsTemporarily();
-  };
-
-  const nudgePlayback = (delta) => {
-    const p = playerRef.current;
-    if (!p || typeof p.getCurrentTime !== 'function' || typeof p.seekTo !== 'function') return;
-    if (activeCheckpointRef.current || showCelebrationRef.current) return;
-    try {
-      const cur = Number(p.getCurrentTime()) || 0;
-      const dur = Number(p.getDuration?.()) || videoDuration || 0;
-      const next = Math.max(0, dur > 0 ? Math.min(dur, cur + delta) : cur + delta);
-      p.seekTo(next, true);
-      setPlaybackSeconds(next);
-      showControlsTemporarily();
-    } catch (_) {}
-  };
-
-  const handleMobileSeek = (event) => {
-    const next = Number(event.target.value);
-    if (Number.isNaN(next)) return;
-    setPlaybackSeconds(next);
-    const p = playerRef.current;
-    if (p && typeof p.seekTo === 'function') {
-      try { p.seekTo(next, true); } catch (_) {}
-    }
-    showControlsTemporarily();
-  };
-
-  const lockIframeToInline = (playerInstance) => {
-    if (!handheldPlayer) return;
-    try {
-      const iframe = playerInstance?.getIframe?.();
-      if (!iframe) return;
-      iframe.removeAttribute('allowfullscreen');
-      iframe.setAttribute('playsinline', '1');
-      iframe.setAttribute('webkit-playsinline', '1');
-      const allow = (iframe.getAttribute('allow') || '')
-        .split(';')
-        .map((part) => part.trim())
-        .filter((part) => part && !/^fullscreen$/i.test(part));
-      if (!allow.some((part) => part.toLowerCase() === 'autoplay')) allow.push('autoplay');
-      iframe.setAttribute('allow', allow.join('; '));
-    } catch (_) {}
   };
 
   useEffect(() => {
@@ -3502,9 +3369,6 @@ const Classroom = () => {
             const percentage = Math.round(percentRaw);
 
             setLiveProgress(percentage);
-            if (!scrubbingRef.current) {
-              setPlaybackSeconds(currentTime);
-            }
             try {
               localStorage.setItem(`learnproof_seek_${videoId}`, String(currentTime));
             } catch (e) { }
@@ -3540,14 +3404,6 @@ const Classroom = () => {
               if (triggerable) {
                 console.log(`[Duolingo Checkpoint Auto-Trigger] Activated ${triggerable.id} at ${currentTime.toFixed(1)}s (target: ${triggerable.timestamp}s)`);
                 triggeredCheckpointIdsRef.current.add(triggerable.id);
-                const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
-                if (fsEl && String(fsEl.tagName || '').toUpperCase() === 'IFRAME') {
-                  const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-                  try {
-                    const res = exitFs && exitFs.call(document);
-                    if (res && res.catch) res.catch(() => {});
-                  } catch (_) {}
-                }
                 activeCheckpointRef.current = triggerable;
                 try {
                   if (typeof player.pauseVideo === 'function') player.pauseVideo();
@@ -3601,16 +3457,6 @@ const Classroom = () => {
   }, [player, video, videoId, lastSavedProgress, token, nextVideo, showNextOverlay, hasCancelledOverlay]);
 
   const handlePlayerStateChange = async (event) => {
-    // A question or the end screen owns playback. Ignore cued/unstarted autoplay until it closes.
-    if (activeCheckpointRef.current || showCelebrationRef.current) {
-      if (event.data === 1 || event.data === 3) {
-        try { event.target?.pauseVideo?.(); } catch (_) {}
-      }
-      setIsVideoPlaying(false);
-      isCurrentlyPlayingRef.current = false;
-      return;
-    }
-
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
       setIsVideoPlaying(true);
@@ -3650,8 +3496,10 @@ const Classroom = () => {
       isCurrentlyPlayingRef.current = false;
       setControlsVisible(true);
       if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
-    } else if (event.data === 5 || event.data === -1) {
-      // CUED / UNSTARTED - kick play to start video without user waiting
+    } else if ((event.data === 5 || event.data === -1) && !activeCheckpointRef.current) {
+      // CUED / UNSTARTED - kick play to start video without user waiting.
+      // Skip this kick while a question is open so we don't undo the pause ourselves.
+      // YouTube's own play button still works.
       try {
         const p = event.target.playVideo();
         if (p && p.catch) p.catch(() => { });
@@ -3875,39 +3723,12 @@ const Classroom = () => {
         </div>
 
         <div className="flex flex-col flex-1 lg:overflow-y-auto w-full max-w-full bg-white dark:bg-gray-900 transition-colors duration-200">
-          {/* Enhanced Video Player. Phones use an in-page fullscreen stage so iOS cannot open the system video view. */}
-          <div 
-            ref={playerContainerRef} 
-            className={`group/player lp-player-shell bg-black relative shadow-2xl flex items-center justify-center shrink-0 overflow-hidden ${
-              isPseudoFullscreen ? 'lp-player-fs' : 'aspect-video w-full transition-all duration-200'
-            } ${
-              isFullscreen && !controlsVisible ? 'cursor-none' : ''
-            } ${
-              handheldPlayer && (activeCheckpoint || showCelebration) ? 'lp-player-suspended' : ''
-            }`}
-            style={isPseudoFullscreen ? buildPseudoFullscreenStyle(fsBox) : undefined}
-            onMouseMove={handlePlayerMouseMove}
-            onMouseEnter={handlePlayerMouseMove}
-            onMouseLeave={handlePlayerMouseLeave}
-            onTouchStart={handlePlayerMouseMove}
+          {/* Official YouTube player only. Nothing is drawn on top of it. */}
+          <div
+            ref={playerContainerRef}
+            className="lp-player-shell bg-black relative aspect-video w-full shrink-0 overflow-hidden"
           >
-            {/* Top-Right Exit Fullscreen Button */}
-            {isFullscreen && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFullscreenToggle();
-                }}
-                className="lp-fs-exit absolute top-3.5 right-3.5 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white text-xs font-bold backdrop-blur-md border border-white/25 shadow-xl active:scale-95 transition-all cursor-pointer select-none"
-                title="Exit Fullscreen"
-              >
-                <Minimize2 size={14} />
-                <span>Exit</span>
-              </button>
-            )}
-
-            {/* Non-blocking background poster behind YouTube iframe - eliminates black void while iframe mounts */}
+            {/* Poster sits behind the iframe and does not cover the player once it loads */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
               <img
                 src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
@@ -3926,10 +3747,9 @@ const Classroom = () => {
                 playerRef.current = e.target;
                 setPlayer(e.target);
                 setPlayerError(false);
-                lockIframeToInline(e.target);
                 // Allow iframe postMessage channel handshake to settle before issuing playback commands
                 setTimeout(() => {
-                  if (activeCheckpointRef.current || showCelebrationRef.current) return;
+                  if (activeCheckpointRef.current) return;
                   try {
                     const p = e.target.playVideo();
                     if (p && p.catch) p.catch(() => { });
@@ -3967,314 +3787,62 @@ const Classroom = () => {
                 showCelebrationRef.current = true;
                 setShowCelebration(true);
                 if (nextVideo) {
-                  console.log("Video ended, triggering celebration & next overlay");
                   setShowNextOverlay(true);
-                  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
-                  const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
-                  if (fsEl && exitFs && String(fsEl.tagName || '').toUpperCase() === 'IFRAME') {
-                    try {
-                      const res = exitFs.call(document);
-                      if (res && res.catch) res.catch(() => {});
-                    } catch (_) {}
-                  } else if (document.fullscreenElement && document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => { });
-                  }
                 }
               }}
               onError={() => setPlayerError(true)}
             />
 
-            {/* Click-Outside Catcher over Video Iframe when Speed Menu is open */}
-            {showSpeedMenu && (
-              <div
-                className="absolute inset-0 z-25 cursor-pointer bg-transparent"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowSpeedMenu(false);
-                }}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                  setShowSpeedMenu(false);
-                }}
-                aria-label="Close speed menu"
-              />
-            )}
+          </div>
 
-            {/* Extension-Style Floating Speed Pill (Desktop & Mobile) */}
-            <div className={`absolute top-3 left-3 z-30 flex items-center gap-1 bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white rounded-xl px-2 py-1 shadow-lg transition-all duration-200 select-none ${
-              speedHudVisible || (handheldPlayer && (!isVideoPlaying || controlsVisible))
-                ? 'opacity-100 scale-100 pointer-events-auto'
-                : 'opacity-0 pointer-events-none scale-95 group-hover/player:opacity-100 group-hover/player:pointer-events-auto group-hover/player:scale-100'
-            }`}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStepSpeed(-1);
-                }}
-                disabled={playbackSpeed <= SPEED_OPTIONS[0]}
-                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                title="Slow down [S]"
-              >
-                <Minus size={11} />
-              </button>
-
-              <div 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowSpeedMenu(prev => !prev);
-                }}
-                className="px-1.5 py-0.5 text-xs font-mono font-bold text-orange-400 hover:text-orange-300 transition cursor-pointer flex items-center gap-0.5"
-                title="Click for Speed Menu (or press S/D keys)"
-              >
-                <span>{playbackSpeed}x</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStepSpeed(1);
-                }}
-                disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
-                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                title="Speed up [D]"
-              >
-                <Plus size={11} />
-              </button>
-
-              {playbackSpeed !== 1 && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    applyPlaybackSpeed(1);
-                  }}
-                  className="ml-0.5 px-1 py-0.5 text-[9px] font-bold uppercase rounded bg-white/10 hover:bg-orange-500 text-gray-300 hover:text-white transition cursor-pointer"
-                  title="Reset to 1x [R]"
-                >
-                  1x
-                </button>
-              )}
-            </div>
-
-            {/* Quick Extension-Style Central Flash Indicator */}
-            <AnimatePresence>
-              {speedHudVisible && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none bg-black/80 backdrop-blur-md border border-orange-500/30 text-white rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-2"
-                >
-                  <Gauge size={22} className="text-orange-500" />
-                  <span className="text-2xl font-mono font-black text-orange-400">{playbackSpeed}x</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Phone / tablet controls. YouTube's own bar is hidden so its fullscreen button cannot take over. */}
-            {handheldPlayer && !activeCheckpoint && !showCelebration && !playerError && (
-              <>
-                <button
-                  type="button"
-                  className="absolute inset-0 z-20 cursor-pointer bg-transparent touch-manipulation"
-                  aria-label={isVideoPlaying ? 'Pause video' : 'Play video'}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!controlsVisibleRef.current) {
-                      showControlsTemporarily();
-                      return;
-                    }
-                    togglePlayback();
-                  }}
-                />
-                {!isVideoPlaying && (
-                  <div className="pointer-events-none absolute top-1/2 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-black/55 border border-white/25 text-white flex items-center justify-center shadow-xl">
-                    <Play size={28} className="text-white fill-white ml-1" />
-                  </div>
-                )}
-                <div
-                  className={`absolute inset-x-0 bottom-0 z-40 px-3 pt-10 pb-[max(0.55rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 via-black/45 to-transparent transition-opacity duration-300 ${
-                    (!isVideoPlaying || controlsVisible)
-                      ? 'opacity-100'
-                      : 'opacity-0 pointer-events-none'
-                  }`}
-                  onTouchStart={(e) => {
-                    e.stopPropagation();
-                    if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
-                    controlsVisibleRef.current = true;
-                    setControlsVisible(true);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-white">
-                    <button
-                      type="button"
-                      onClick={togglePlayback}
-                      className="w-9 h-9 shrink-0 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"
-                      aria-label={isVideoPlaying ? 'Pause' : 'Play'}
-                    >
-                      {isVideoPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5 fill-white" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => nudgePlayback(-10)}
-                      className="h-9 px-1.5 shrink-0 rounded-full text-[11px] font-bold text-white/90"
-                      aria-label="Back 10 seconds"
-                    >
-                      -10
-                    </button>
-                    <input
-                      type="range"
-                      min={0}
-                      max={Math.max(videoDuration || 0, playbackSeconds || 0, 1)}
-                      step={0.1}
-                      value={Math.min(playbackSeconds || 0, Math.max(videoDuration || 0, playbackSeconds || 0, 1))}
-                      onPointerDown={() => { scrubbingRef.current = true; }}
-                      onPointerUp={() => { scrubbingRef.current = false; }}
-                      onPointerCancel={() => { scrubbingRef.current = false; }}
-                      onTouchStart={() => { scrubbingRef.current = true; }}
-                      onTouchEnd={() => { scrubbingRef.current = false; }}
-                      onBlur={() => { scrubbingRef.current = false; }}
-                      onChange={handleMobileSeek}
-                      className="lp-seek flex-1 min-w-0"
-                      aria-label="Seek"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => nudgePlayback(10)}
-                      className="h-9 px-1.5 shrink-0 rounded-full text-[11px] font-bold text-white/90"
-                      aria-label="Forward 10 seconds"
-                    >
-                      +10
-                    </button>
-                    <span className="shrink-0 text-[11px] font-mono tabular-nums text-white/90">
-                      {formatPlaybackClock(playbackSeconds)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleFullscreenToggle}
-                      className="w-9 h-9 shrink-0 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"
-                      aria-label={isFullscreen ? 'Exit fullscreen' : 'Full screen'}
-                    >
-                      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                    </button>
-                  </div>
+          {/* Video Details */}
+          <div className="bg-white dark:bg-gray-900 flex-1 min-w-0 transition-colors duration-200">
+            <div className="max-w-5xl mx-auto p-3 sm:p-6 pb-3 sm:pb-6 text-gray-900 dark:text-white">
+              {playerError && (
+                <div className="mb-4 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-gray-700 dark:text-gray-200">
+                  <p className="font-semibold text-gray-900 dark:text-white mb-1">This video cannot be played here.</p>
+                  <p className="mb-3">The owner has limited embedded playback. You can watch it on YouTube.</p>
+                  <a
+                    href={`https://www.youtube.com/watch?v=${video.vid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center font-bold text-red-600 hover:text-red-700"
+                  >
+                    Watch on YouTube
+                  </a>
                 </div>
-              </>
-            )}
-
-            {/* Fullscreen / Minimize Toggle Button (Below, Icon Only, Same as Image 2, Auto-Hides with Controls) */}
-            {!handheldPlayer && (
-            <button
-              type="button"
-              onMouseEnter={() => {
-                if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
-                setControlsVisible(true);
-              }}
-              onMouseLeave={() => {
-                showControlsTemporarily();
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFullscreenToggle();
-              }}
-              className={`absolute bottom-12 sm:bottom-14 right-3.5 sm:right-4 z-40 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-900/65 hover:bg-slate-900/90 text-white backdrop-blur-md border border-white/20 shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer select-none ${
-                (!isVideoPlaying || controlsVisible)
-                  ? 'opacity-100 translate-y-0 pointer-events-auto'
-                  : 'opacity-0 translate-y-1 pointer-events-none group-hover/player:opacity-100 group-hover/player:pointer-events-auto group-hover/player:translate-y-0'
-              }`}
-              title={isFullscreen ? "Exit Fullscreen (f or Esc)" : "Full screen (f)"}
-              aria-label={isFullscreen ? "Exit Fullscreen" : "Full screen"}
-            >
-              {isFullscreen ? (
-                <Minimize2 size={16} strokeWidth={2.2} className="text-white" />
-              ) : (
-                <Maximize2 size={16} strokeWidth={2.2} className="text-white" />
               )}
-            </button>
-            )}
 
-            {/* Fallback overlay when YouTube blocks embedding */}
-            {playerError && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 bg-gray-950 text-white text-center px-6">
-                <div className="p-5 bg-red-500/10 rounded-full border border-red-500/20">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                </div>
-                <div>
-                  <h3 className="text-xl font-black mb-2">Embedding Restricted</h3>
-                  <p className="text-gray-400 text-sm max-w-sm">The video owner has disabled embedded playback. You can still watch this video directly on YouTube.</p>
-                </div>
-                <a
-                  href={`https://www.youtube.com/watch?v=${video.vid}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-8 py-3.5 bg-red-600 text-white font-black text-sm rounded-2xl hover:bg-red-700 transition-all hover:scale-105 shadow-2xl shadow-red-500/30"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
-                  Watch on YouTube
-                </a>
-              </div>
-            )}
-
-            {/* Custom Next Video recommendation overlay */}
-            {showNextOverlay && nextVideo && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/45 text-white text-center p-2 sm:p-4 transition-all duration-300 animate-fade-in">
-                <div className="max-w-[90%] w-[320px] sm:max-w-md bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl flex flex-col items-center gap-2 sm:gap-4">
-                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-orange-400">
-                    Next Lesson Up
-                  </div>
-
-                  {/* Thumbnail is hidden on mobile to avoid overflow inside portrait player aspect-ratio */}
-                  <div className="hidden sm:block relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg group">
-                    <img
-                      src={`https://img.youtube.com/vi/${nextVideo.vid}/hqdefault.jpg`}
-                      alt={nextVideo.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                      <div className="w-12 h-12 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-lg cursor-pointer" onClick={() => handleSelectVideo(nextVideo.vid)}>
-                        <Play size={18} className="text-white fill-white ml-1" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-center px-1 sm:px-2">
-                    <h4 className="text-xs sm:text-sm font-bold text-gray-100 line-clamp-1 sm:line-clamp-2 leading-snug">
-                      {nextVideo.name}
-                    </h4>
-                  </div>
-
-                  <div className="flex gap-2 sm:gap-3 w-full mt-1 sm:mt-2">
+              {showNextOverlay && nextVideo && (
+                <div id="classroom-next-lesson" className="mb-4 rounded-2xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 p-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">Next lesson</div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 mb-3">{nextVideo.name}</h4>
+                  <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => {
                         setShowNextOverlay(false);
                         setHasCancelledOverlay(true);
                       }}
-                      className="flex-1 py-2 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl transition-all"
+                      className="flex-1 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-bold"
                     >
-                      Cancel
+                      Not now
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleSelectVideo(nextVideo.vid)}
-                      className="flex-1 py-2 sm:py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl transition-all shadow-lg shadow-orange-500/25"
+                      className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white text-xs font-bold"
                     >
-                      Play Next
+                      Play next
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Quiz stays inside the fullscreen stage so it rotates with the video. Otherwise it covers the page. */}
-            {activeCheckpoint && (
-              createPortal(
+              {activeCheckpoint && (
                 <DuolingoCheckpointOverlay
+                  inline
                   checkpoint={activeCheckpoint}
-                  contained={Boolean(isFullscreen && playerContainerRef.current)}
                   onAnswer={handleCheckpointAnswer}
                   onContinue={handleCheckpointContinue}
                   onRewind={handleCheckpointRewind}
@@ -4292,15 +3860,12 @@ const Classroom = () => {
                     }
                     toast("Interactive quizzes turned OFF", { icon: '⏸️' });
                   }}
-                />,
-                (isFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
-              )
-            )}
+                />
+              )}
 
-            {/* Duolingo Lesson Victory Celebration Screen */}
-            {showCelebration && (
-              createPortal(
+              {showCelebration && (
                 <DuolingoCelebrationModal
+                  inline
                   isOpen={showCelebration}
                   videoTitle={video?.name}
                   xpEarned={sessionXp > 0 ? sessionXp : 45}
@@ -4323,15 +3888,9 @@ const Classroom = () => {
                     setShowCelebration(false);
                     handleSelectTab('intuition');
                   }}
-                />,
-                (isFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
-              )
-            )}
-          </div>
+                />
+              )}
 
-          {/* Video Details */}
-          <div className="bg-white dark:bg-gray-900 flex-1 min-w-0 transition-colors duration-200">
-            <div className="max-w-5xl mx-auto p-3 sm:p-6 pb-3 sm:pb-6 text-gray-900 dark:text-white">
               <div className="flex items-start gap-2 mb-4">
                 <h1 className="text-sm md:text-base font-bold leading-snug flex-1 text-gray-800 dark:text-white line-clamp-2">{video.name}</h1>
                 <a
