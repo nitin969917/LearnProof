@@ -1125,7 +1125,7 @@ html, body {
   border: 0;
 }
 
-.lp-player-shell iframe {
+.lp-player-shell:not(.lp-player-fs) iframe {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
@@ -1133,6 +1133,21 @@ html, body {
   max-width: none !important;
   max-height: none !important;
   border: 0;
+}
+
+/* Fullscreen: the iframe itself is the 16:9 picture on a black screen, same as YouTube. */
+.lp-player-fs iframe {
+  position: absolute !important;
+  inset: auto !important;
+  top: var(--lp-cover-top, 0px) !important;
+  left: var(--lp-cover-left, 0px) !important;
+  width: var(--lp-cover-width, 100%) !important;
+  height: var(--lp-cover-height, 100%) !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: 0;
+  background: #000 !important;
 }
 
 /* Fullscreen stage always matches the visible screen, including short mobile browsers. */

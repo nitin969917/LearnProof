@@ -112,10 +112,12 @@ const isHandheldVideoDevice = () => {
   const coarse = window.matchMedia?.('(pointer: coarse), (any-pointer: coarse)')?.matches;
   const finePointer = window.matchMedia?.('(pointer: fine)')?.matches;
   const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+  const narrow = window.matchMedia?.('(max-width: 1024px)')?.matches;
   if (nativeApp || iOS || android) return true;
   // Desktop-site mode on a phone still has a coarse pointer and no mouse.
   if (coarse && !finePointer) return true;
   if (touch && !finePointer) return true;
+  if (narrow && (touch || coarse)) return true;
   return false;
 };
 
@@ -815,6 +817,7 @@ const Classroom = () => {
   const statusBarHiddenRef = useRef(false);
   const [handheldPlayer] = useState(() => isHandheldVideoDevice());
   const [inlineCoverVars, setInlineCoverVars] = useState(null);
+  const [fsFrameCover, setFsFrameCover] = useState(null);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
 
   const youtubeOpts = useMemo(() => {
@@ -1877,14 +1880,21 @@ const Classroom = () => {
       const rect = el.getBoundingClientRect();
       if (rect.width < 2 || rect.height < 2) return;
       const cover = cover16x9(rect.width, rect.height);
-      setInlineCoverVars(coverStyleVars(cover));
-      const frame = el.querySelector('.lp-yt-frame');
-      if (frame) {
-        frame.style.setProperty('top', `${cover.top}px`, 'important');
-        frame.style.setProperty('left', `${cover.left}px`, 'important');
-        frame.style.setProperty('width', `${cover.width}px`, 'important');
-        frame.style.setProperty('height', `${cover.height}px`, 'important');
-      }
+      const vars = coverStyleVars(cover);
+      if (isPseudoFullscreenRef.current) setFsFrameCover(vars);
+      else setInlineCoverVars(vars);
+      const pin = (node) => {
+        if (!node) return;
+        node.style.setProperty('position', 'absolute', 'important');
+        node.style.setProperty('inset', 'auto', 'important');
+        node.style.setProperty('top', `${cover.top}px`, 'important');
+        node.style.setProperty('left', `${cover.left}px`, 'important');
+        node.style.setProperty('width', `${cover.width}px`, 'important');
+        node.style.setProperty('height', `${cover.height}px`, 'important');
+        node.style.setProperty('margin', '0', 'important');
+      };
+      pin(el.querySelector('.lp-yt-frame'));
+      pin(el.querySelector('iframe'));
       const p = playerRef.current;
       if (p && typeof p.setSize === 'function') {
         try { p.setSize(Math.round(cover.width), Math.round(cover.height)); } catch (_) {}
@@ -1905,6 +1915,7 @@ const Classroom = () => {
   const exitPseudoFullscreen = () => {
     isPseudoFullscreenRef.current = false;
     setIsPseudoFullscreen(false);
+    setFsFrameCover(null);
     cleanupFullscreenStyles();
   };
 
@@ -2034,6 +2045,17 @@ const Classroom = () => {
     try { p.unloadModule('captions'); } catch (_) {}
     try { p.unloadModule('cc'); } catch (_) {}
     try { p.setOption('captions', 'track', {}); } catch (_) {}
+    try {
+      const iframe = p.getIframe?.();
+      const win = iframe?.contentWindow;
+      if (!win) return;
+      const command = (func, args) => {
+        win.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+      };
+      command('unloadModule', ['captions']);
+      command('unloadModule', ['cc']);
+      command('setOption', ['captions', 'track', {}]);
+    } catch (_) {}
   };
 
   const lockIframeToInline = (playerInstance) => {
@@ -3930,8 +3952,12 @@ const Classroom = () => {
               handheldPlayer && (activeCheckpoint || showCelebration) ? 'lp-player-suspended' : ''
             }`}
             style={{
-              ...(isPseudoFullscreen ? buildPseudoFullscreenStyle() : {}),
-              ...(inlineCoverVars || {}),
+              ...(isPseudoFullscreen
+                ? {
+                    ...buildPseudoFullscreenStyle(),
+                    ...(fsFrameCover || coverStyleVars(cover16x9(window.innerWidth, window.innerHeight))),
+                  }
+                : (inlineCoverVars || {})),
             }}
             onMouseMove={handlePlayerMouseMove}
             onMouseEnter={handlePlayerMouseMove}
@@ -3975,7 +4001,10 @@ const Classroom = () => {
                 setPlayerError(false);
                 lockIframeToInline(e.target);
                 disableCaptions(e.target);
-                [300, 1000, 2000].forEach((ms) => setTimeout(() => disableCaptions(e.target), ms));
+                try {
+                  e.target.addEventListener('onApiChange', () => disableCaptions(e.target));
+                } catch (_) {}
+                [300, 800, 1600, 3000].forEach((ms) => setTimeout(() => disableCaptions(e.target), ms));
                 // Allow iframe postMessage channel handshake to settle before issuing playback commands
                 setTimeout(() => {
                   if (activeCheckpointRef.current || showCelebrationRef.current) return;
