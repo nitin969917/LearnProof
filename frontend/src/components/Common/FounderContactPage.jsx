@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
     ArrowRight,
     ArrowUpRight,
-    Globe,
     Mail,
     MessageCircle,
     Phone,
@@ -49,7 +48,7 @@ const contactActions = (person) => [
 ];
 
 // Full-width link row used for the main actions.
-const LinkRow = ({ href, icon: Icon, title, subtitle, primary = false }) => {
+const LinkRow = ({ href, icon: Icon, logo, title, subtitle, primary = false }) => {
     const external = href && /^https?:/.test(href);
     return (
         <a
@@ -61,8 +60,12 @@ const LinkRow = ({ href, icon: Icon, title, subtitle, primary = false }) => {
                     : 'bg-white hover:border-orange-200 text-slate-900 border border-orange-100 shadow-sm shadow-orange-500/5'
             }`}
         >
-            <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${primary ? 'bg-white/20 text-white' : 'bg-slate-50 border border-slate-100'}`}>
-                {React.isValidElement(Icon) ? Icon : <Icon size={18} strokeWidth={2.25} className={primary ? 'text-white' : 'text-orange-600'} />}
+            <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${logo ? 'bg-white' : primary ? 'bg-white/20 text-white' : 'bg-slate-50 border border-slate-100'}`}>
+                {logo ? (
+                    <img src={logo} alt="" className="w-9 h-9 object-contain" />
+                ) : React.isValidElement(Icon) ? Icon : (
+                    <Icon size={18} strokeWidth={2.25} className={primary ? 'text-white' : 'text-orange-600'} />
+                )}
             </span>
             <span className="flex-1 min-w-0">
                 <span className="block text-sm font-bold leading-tight">{title}</span>
@@ -200,7 +203,7 @@ const FounderContactPage = ({ slug }) => {
                 </div>
 
                 <div className="mt-6 space-y-2.5">
-                    <LinkRow primary href={companyLinks.website} icon={Globe} title="Explore LearnProof AI" subtitle="Visit our official website" />
+                    <LinkRow primary href={companyLinks.website} logo="/LP_M_logo.png" title="Explore LearnProof AI" subtitle="Visit our official website" />
                     <LinkRow href={companyLinks.playStore} icon={<GooglePlayIcon />} title="Download Android App" subtitle="Google Play Store" />
                     <LinkRow href={companyLinks.appStore} icon={<AppleIcon />} title="Download iOS App" subtitle="Apple App Store" />
                     {companyLinks.pitchDeck && (
