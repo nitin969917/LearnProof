@@ -28,7 +28,7 @@ const QuizMathText = React.memo(({ text, className = '' }) => {
     <span className={`quiz-math-text inline-block max-w-full overflow-x-auto align-middle custom-scrollbar-thin ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false, errorColor: 'currentColor' }]]}
         components={{
           p: ({ node, ...props }) => <span className="inline leading-relaxed break-words" {...props} />,
           div: ({ node, ...props }) => <span className="inline" {...props} />,

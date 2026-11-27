@@ -238,77 +238,114 @@ const shuffleOptions = (options, answer) => {
     };
 };
 
-const generateQuestionForChunk = async (videoTitle, chunkText, prevTs, ts, index, total) => {
-    const progressPct = Math.round(((index + 1) / total) * 100);
-    const phase = index === 0 
-        ? 'Early Lecture (Foundational setup & definitions)'
-        : (index === total - 1 
-            ? 'Concluding Lecture (Final solution & verification)' 
-            : `Mid Lecture Step ${index + 1} of ${total} (${progressPct}% through the lesson)`);
+const normalizeQuestion = (question) =>
+    String(question || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\u0900-\u097f]+/g, ' ')
+        .trim();
 
-    const prompt = `You are creating a quick in-video comprehension check for an online lecture titled: "${videoTitle}".
+const GENERIC_QUESTION = /foundational formula|core method or calculation|calculation rule was applied|domain limits or terms|primary analytical outcome|standard formula derivation|standard analytical formula/i;
 
-Lecture Phase: ${phase}
-The student JUST finished watching this specific 1.5 - 2 minute section of the lecture (from ${formatTimeLabel(prevTs)} to ${formatTimeLabel(ts)}):
-=== RECENT 1.5 - 2 MINUTE TEACHING SECTION (TEST THIS SPECIFIC CHUNK) ===
-${chunkText.slice(0, 3500)}
-=== END RECENT SECTION ===
+const isGenericQuestion = (question) => GENERIC_QUESTION.test(String(question || ''));
 
-TASK:
-Ask ONE multiple-choice comprehension check testing the specific concept, formula, step, calculation, definition, or distinction taught in THIS EXACT section.
+const questionsTooSimilar = (a, b) => {
+    const na = normalizeQuestion(a);
+    const nb = normalizeQuestion(b);
+    if (!na || !nb) return false;
+    if (na === nb || na.slice(0, 42) === nb.slice(0, 42)) return true;
+    const words = (text) => new Set(text.split(' ').filter((word) => word.length > 3));
+    const left = words(na);
+    const right = words(nb);
+    if (left.size < 4 || right.size < 4) return false;
+    let shared = 0;
+    left.forEach((word) => {
+        if (right.has(word)) shared += 1;
+    });
+    return shared / Math.min(left.size, right.size) >= 0.72;
+};
 
-STRICT DUOLINGO GUIDELINES:
-1. 100% GROUNDED: Ask about the specific step, variable, formula, or proof actively taught in the section above.
-2. DIVERSE & PROGRESSIVE: Do NOT repeat questions from other sections. Focus on the distinct mathematical/conceptual advancement made in this specific segment.
-3. CONCISE: Question must be clear and short (<22 words).
-4. 4 DISTINCT OPTIONS: Exactly 4 options (max 8 words each).
-5. EXACT ANSWER MATCH: The "answer" field MUST be an exact string match with one of the 4 options.
-6. SHORT EXPLANATION: 1 clear explanation sentence (<20 words).
-7. MATHEMATICAL FORMULAS & NOTATION: When questions or options contain math, equations, integrals, or formulas, write standard LaTeX enclosed in single dollar signs (e.g. "$a_n = \\frac{2}{\\pi} \\int_0^\\pi f(x) \\cos(nx)\\,dx$", "$f(x) = a_0 + \\sum a_n \\cos(nx)$", "$a_n$", "$\\pi$"). In JSON strings, always escape backslashes as "\\\\" (e.g. "\\\\frac", "\\\\int", "\\\\sum", "\\\\cos").
-8. RANDOMIZE OPTION POSITIONS: Mix and randomize option order so the correct answer is NOT always the first option (Option A). Place the correct answer unpredictably at position 1, 2, 3, or 4.
-9. VALID JSON: Output valid, parseable JSON only. Do not wrap in markdown quotes if possible.
+const parseQuestionJson = (text) => {
+    if (!text || typeof text !== 'string') return null;
+    try {
+        return JSON.parse(text);
+    } catch (_) {
+        try {
+            return JSON.parse(repairAIJSONString(text));
+        } catch (_) {
+            return cleanAIJSON(text);
+        }
+    }
+};
 
-Respond ONLY with valid JSON:
-{
-  "question": "...",
-  "options": ["...", "...", "...", "..."],
-  "answer": "...",
-  "explanation": "..."
-}`;
+const acceptQuestion = (parsed) => {
+    if (!parsed?.question || !Array.isArray(parsed.options) || parsed.options.length < 4 || !parsed.answer) return null;
+    if (isGenericQuestion(parsed.question)) return null;
+    const { options, answer } = shuffleOptions(parsed.options.slice(0, 4), parsed.answer);
+    if (!options.includes(answer)) return null;
+    return {
+        question: String(parsed.question).trim(),
+        options,
+        answer,
+        explanation: parsed.explanation || ''
+    };
+};
+
+const generateQuestionsForSlices = async (videoTitle, defs, alreadyAsked) => {
+    const slices = defs.map((def) => {
+        const spoken = def.chunkText.length > 2200 ? def.chunkText.slice(-2200) : def.chunkText;
+        return `SLICE ${def.idx} — student has watched up to ${formatTimeLabel(def.ts)} (this check covers ${formatTimeLabel(def.prevTs)} to ${formatTimeLabel(def.ts)} only):\n${spoken}`;
+    }).join('\n\n');
+
+    const forbidden = alreadyAsked.length
+        ? `Already asked. Do not repeat or rephrase any of these:\n${alreadyAsked.map((q, i) => `${i + 1}. ${q}`).join('\n')}`
+        : 'No questions have been asked yet.';
+
+    const prompt = `You write in-video checks for the lecture "${videoTitle}".
+
+Each slice below is the exact speech the student just watched, and nothing after that timestamp.
+${forbidden}
+
+${slices}
+
+For every slice, write ONE multiple-choice question that a student can answer only from that slice.
+The question must check a specific fact, term, step, number, name, definition, or distinction that was actually said in that slice.
+Do not ask about the lecture title in general. Do not ask what "might" have been taught. Do not reuse the same fact across slices.
+
+Rules:
+- Question under 22 words.
+- Exactly 4 options, each under 10 words, and all different.
+- "answer" must be copied exactly from one option.
+- Put the correct option in a different position for each question.
+- One-sentence explanation under 20 words, using only that slice.
+- Math uses $...$ LaTeX with braces, never glued scripts. Write $0^{i}1^{j}0^{k}$, not 0^i_1^j_0^k. Escape backslashes in JSON as \\\\.
+- Return one object per slice, using that slice's index. Skip a slice only if it has no teachable fact.
+
+Respond ONLY with JSON:
+{"questions":[{"index":0,"question":"...","options":["...","...","...","..."],"answer":"...","explanation":"..."}]}`;
 
     try {
         const text = await generateGeminiContent(MODELS.GEMINI_FLASH_LITE, prompt, {
-            maxOutputTokens: 500,
-            temperature: 0.2,
+            maxOutputTokens: 1800,
+            temperature: 0.4,
             responseMimeType: 'application/json'
         });
 
-        if (!text || typeof text !== 'string') return null;
-
-        let parsed = null;
-        try {
-            parsed = JSON.parse(text);
-        } catch (_) {
-            try {
-                parsed = JSON.parse(repairAIJSONString(text));
-            } catch (_) {
-                parsed = cleanAIJSON(text);
-            }
-        }
-
-        if (parsed && parsed.question && Array.isArray(parsed.options) && parsed.options.length >= 4 && parsed.answer) {
-            const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(parsed.options.slice(0, 4), parsed.answer);
-            return {
-                question: parsed.question,
-                options: shuffledOpts,
-                answer: resolvedAns,
-                explanation: parsed.explanation || ''
-            };
-        }
+        const parsed = parseQuestionJson(text);
+        const list = Array.isArray(parsed?.questions) ? parsed.questions : [];
+        const byIndex = new Map();
+        list.forEach((item, position) => {
+            const accepted = acceptQuestion(item);
+            if (!accepted) return;
+            const index = defs.some((def) => def.idx === item.index)
+                ? item.index
+                : defs[position]?.idx;
+            if (index !== undefined && !byIndex.has(index)) byIndex.set(index, accepted);
+        });
+        return byIndex;
     } catch (e) {
-        console.warn(`[CheckpointQ] Chunk [${Math.round(prevTs)}s->${Math.round(ts)}s] error:`, e.message);
+        console.warn(`[CheckpointQ] Slice batch error:`, e.message);
+        return new Map();
     }
-    return null;
 };
 
 // ─── 5. Route Handler ─────────────────────────────────────────────────────────
@@ -327,25 +364,17 @@ const getCheckpointQuestions = async (req, res) => {
 
     if (!videoId) return res.status(400).json({ error: 'videoId required' });
 
-    // Cache key v9: Randomized option positions & chunk-grounded checkpoints
-    const cacheKey = `checkpoint-questions:v9:${videoId}`;
+    // Cache key v10: questions come only from the transcript watched up to each pause.
+    const cacheKey = `checkpoint-questions:v10:${videoId}`;
 
     try {
         const cached = await cacheService.get(cacheKey);
-        if (cached && Array.isArray(cached) && cached.length >= 2) {
+        const cachedIsUsable = Array.isArray(cached)
+            && cached.length >= 1
+            && cached.every((cp) => cp?.question && !isGenericQuestion(cp.question));
+        if (cachedIsUsable) {
             console.log(`[CheckpointQ] ✅ Cache hit for ${videoId} (${cached.length} checkpoints)`);
             return res.status(200).json({ checkpoints: cached });
-        }
-
-        // Check legacy cache v8 and randomize options if needed
-        const legacyCached = await cacheService.get(`checkpoint-questions:v8:${videoId}`);
-        if (legacyCached && Array.isArray(legacyCached) && legacyCached.length >= 2) {
-            const shuffledLegacy = legacyCached.map(cp => {
-                const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(cp.options, cp.answer);
-                return { ...cp, options: shuffledOpts, answer: resolvedAns };
-            });
-            await cacheService.set(cacheKey, shuffledLegacy, 24 * 3600);
-            return res.status(200).json({ checkpoints: shuffledLegacy });
         }
 
         // Fetch video record from DB
@@ -381,113 +410,52 @@ const getCheckpointQuestions = async (req, res) => {
         // 3. Sentence-End Snapped Timestamps
         const timestamps = calculateCheckpointTimestamps(segments, teachingStart, totalDuration, targetCount);
 
-        // 4. Load VideoIntuition for proportional fallback if transcript is sparse
-        let intuitionPages = [];
-        let fullIntuitionText = '';
-        try {
-            const intuition = await prisma.videoIntuition.findFirst({ where: { vid: videoId } });
-            if (intuition && intuition.content) {
-                try {
-                    const parsed = JSON.parse(intuition.content);
-                    if (Array.isArray(parsed.pages)) {
-                        intuitionPages = parsed.pages;
-                        fullIntuitionText = parsed.pages.map(p => `### ${p.title || 'Topic'}\n${p.content}`).join('\n\n');
-                    } else {
-                        fullIntuitionText = intuition.content;
-                    }
-                } catch {
-                    fullIntuitionText = intuition.content;
-                }
-            }
-        } catch (_) {}
-
-        // Has rich spoken transcript?
-        const hasRichSegments = segments && segments.length >= 20;
-
-        // 5. Generate Checkpoints Chunk by Chunk (Parallel with Batches)
-        console.log(`[CheckpointQ] Generating ${targetCount} chunk-grounded checkpoints (hasRichSegments: ${hasRichSegments})...`);
-
-        // Prepare chunk definitions
-        const chunkDefs = timestamps.map((ts, idx) => {
-            const prevTs = idx === 0 ? teachingStart : timestamps[idx - 1];
-            let chunkText = '';
-
-            if (hasRichSegments) {
-                const sliceSegs = segments.filter(s => s.offset >= Math.max(0, prevTs - 6) && s.offset <= ts + 4);
-                chunkText = sliceSegs.map(s => s.text).join(' ').trim();
-            }
-
-            // If transcript slice is too short, extract proportional intuition segment
-            if (!chunkText || chunkText.length < 50) {
-                if (intuitionPages.length > 1) {
-                    const pageIdx = Math.min(intuitionPages.length - 1, Math.floor((idx / targetCount) * intuitionPages.length));
-                    const page = intuitionPages[pageIdx];
-                    chunkText = `Topic: ${page.title || videoTitle}\n${page.content}`;
-                } else if (fullIntuitionText) {
-                    const charStart = Math.floor((idx / targetCount) * fullIntuitionText.length);
-                    const charEnd = Math.floor(((idx + 1) / targetCount) * fullIntuitionText.length);
-                    chunkText = fullIntuitionText.slice(Math.max(0, charStart - 100), Math.min(fullIntuitionText.length, Math.max(charStart + 1200, charEnd + 400)));
-                } else {
-                    chunkText = `Lecture Topic: ${videoTitle}\n${video?.description ? video.description.slice(0, 1000) : ''}`;
-                }
-            }
-
-            return { ts, prevTs, idx, chunkText };
+        // 4. Each check uses only the speech from the previous pause up to this one.
+        const seenQuestions = [];
+        const chunkDefs = [];
+        let previousTs = teachingStart;
+        timestamps.forEach((ts) => {
+            if (ts - previousTs < 70) return;
+            const sliceSegs = (segments || []).filter((s) => s.offset >= previousTs && s.offset <= ts);
+            const chunkText = sliceSegs.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim();
+            if (chunkText.length < 80) return;
+            chunkDefs.push({ ts, prevTs: previousTs, idx: chunkDefs.length, chunkText });
+            previousTs = ts;
         });
 
-        // Run chunk generations with concurrency limit (5 at a time) for speed and reliability
-        const BATCH_SIZE = 5;
-        const results = [];
+        console.log(`[CheckpointQ] Generating ${chunkDefs.length} checks from watched transcript slices...`);
+
+        const BATCH_SIZE = 4;
+        const questionsByIndex = new Map();
         for (let i = 0; i < chunkDefs.length; i += BATCH_SIZE) {
             const batch = chunkDefs.slice(i, i + BATCH_SIZE);
-            const batchResults = await Promise.all(
-                batch.map(def => generateQuestionForChunk(videoTitle, def.chunkText, def.prevTs, def.ts, def.idx, targetCount))
-            );
-            results.push(...batchResults);
+            const batchQuestions = await generateQuestionsForSlices(videoTitle, batch, seenQuestions);
+            batch.forEach((def) => {
+                const question = batchQuestions.get(def.idx);
+                if (!question) return;
+                const repeated = seenQuestions.some((asked) => questionsTooSimilar(asked, question.question));
+                if (repeated) return;
+                questionsByIndex.set(def.idx, question);
+                seenQuestions.push(question.question);
+            });
         }
 
-        // 6. Assemble Final Checkpoints Array (with Randomized Option Positions)
-        const checkpoints = timestamps.map((ts, idx) => {
-            const q = results[idx];
-            if (q && q.question && Array.isArray(q.options) && q.options.length >= 4 && q.answer) {
-                const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(q.options, q.answer);
-                return {
-                    id: `cp_${videoId}_${idx}`,
-                    timestamp: ts,
-                    pct: ts / totalDuration,
-                    question: q.question,
-                    options: shuffledOpts,
-                    answer: resolvedAns,
-                    explanation: q.explanation,
-                    index: idx,
-                    total: targetCount
-                };
-            }
-
-            // Topic-aware fallback if a single chunk generation timed out
-            const cleanTopic = videoTitle.replace(/^(CS\s*&\s*IT|GATE.*|Lecture|Lec|Part|Session)[\s\-#0-9:]*/i, '').trim();
-            const phaseLabel = idx === 0 ? 'Foundation' : (idx === targetCount - 1 ? 'Synthesis' : `Step ${idx + 1}`);
-            const rawFbOptions = [
-                "Standard formula derivation and term evaluation",
-                "Skipping intermediate rule constraints",
-                "Random variable substitution without verification",
-                "Disregarding domain boundary limits"
-            ];
-            const rawFbAns = "Standard formula derivation and term evaluation";
-            const { options: shuffledFbOpts, answer: resolvedFbAns } = shuffleOptions(rawFbOptions, rawFbAns);
-
-            return {
-                id: `cp_${videoId}_${idx}`,
-                timestamp: ts,
-                pct: ts / totalDuration,
-                question: `${phaseLabel} Check: Which core method or calculation was applied in this section for ${cleanTopic.slice(0, 45)}?`,
-                options: shuffledFbOpts,
-                answer: resolvedFbAns,
-                explanation: `In this section of ${cleanTopic.slice(0, 35)}, the instructor performs systematic rule evaluation and term calculation.`,
-                index: idx,
-                total: targetCount
-            };
-        });
+        // 5. Keep only checks that are about the slice the student just watched.
+        const checkpoints = chunkDefs.flatMap((def) => {
+            const question = questionsByIndex.get(def.idx);
+            if (!question) return [];
+            return [{
+                id: `cp_${videoId}_${def.idx}`,
+                timestamp: def.ts,
+                pct: def.ts / totalDuration,
+                question: question.question,
+                options: question.options,
+                answer: question.answer,
+                explanation: question.explanation,
+                index: def.idx,
+                total: questionsByIndex.size
+            }];
+        }).map((cp, idx, all) => ({ ...cp, index: idx, total: all.length }));
 
         console.log(`[CheckpointQ] Successfully prepared ${checkpoints.length} chunk-grounded checkpoints for ${videoId}`);
 

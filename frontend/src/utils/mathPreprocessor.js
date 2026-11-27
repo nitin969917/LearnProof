@@ -193,6 +193,14 @@ export const preprocessMath = (text) => {
  * Specifically formats multiple-choice questions, options, and explanations
  * so that mathematical notation renders in textbook-grade KaTeX typography.
  */
+// 0^i_1^j_0^k and 0^i1^j0^k are several exponents glued into one invalid script.
+const GLUED_POWERS = /[0-9]\^[A-Za-z]+(?:_[0-9]\^[A-Za-z]+)+|(?:[0-9]\^[A-Za-z]+){2,}/g;
+const BRACED_POWERS = /(?:[0-9]\^\{[A-Za-z]+\}){2,}/g;
+
+const braceGluedPowers = (src) => src.replace(GLUED_POWERS, (run) =>
+  run.replace(/_/g, '').replace(/([0-9])\^([A-Za-z]+)/g, '$1^{$2}')
+);
+
 export const formatQuizMath = (text) => {
   if (!text || typeof text !== 'string') return '';
 
@@ -225,6 +233,17 @@ export const formatQuizMath = (text) => {
 
   processed = processed.replace(/```[\s\S]*?```/g, protectCode);
   processed = processed.replace(/`[^`\n]+`/g, protectCode);
+
+  // Repair formulas that were glued together, including ones already wrapped in $...$.
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$|\$(?!\$)([^$\n]+?)\$(?!\$)/g, (full, display, inline) => {
+    const inner = braceGluedPowers(display ?? inline);
+    const hasProse = /\b(?:when|where|for|the|and|with|can|what|which|rule|becomes|allows|removed|introduced|optional|entirely|occurrences|zero|more|primary|difference)\b/i.test(inner);
+    if (!hasProse) {
+      return display !== undefined ? `$$${inner}$$` : `$${inner}$`;
+    }
+    return inner.replace(BRACED_POWERS, (run) => `$${run}$`);
+  });
+  processed = processed.replace(GLUED_POWERS, (run) => `$${braceGluedPowers(run)}$`);
 
   // 1. Unicode Greek, math operators, superscripts, and subscripts
   processed = processed
@@ -425,6 +444,7 @@ export const formatQuizMath = (text) => {
   sentence = sentence.replace(/\b(formula for|value of|coefficient|integral of|constant|term|variable)\s+([a-zA-Z](?:_[0-9a-zA-Z{}]+)?)\b/g, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
   sentence = sentence.replace(/\b(limit|point|radius of convergence)\s+([A-Za-z])\b/g, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
   sentence = sentence.replace(/\b(for all real|for all)\s+([a-zA-Z])([.,;]|\s|$)/g, (m, prefix, v, punct) => `${prefix} ${protect(`$${v}$`)}${punct}`);
+  sentence = sentence.replace(/\b(when|where|for)\s+([b-hj-z])\b/gi, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
   sentence = sentence.replace(/\bfrom\s+(-?\\pi|-?[0-9a-zA-Z]+)\s+to\s+(-?\\pi|-?[0-9a-zA-Z]+)\b/g, (m, from, to) => `from ${protect(`$${from.trim()}$`)} to ${protect(`$${to.trim()}$`)}`);
 
   // Rule 8: Any remaining LaTeX commands outside math blocks

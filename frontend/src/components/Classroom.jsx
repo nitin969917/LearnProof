@@ -1204,105 +1204,8 @@ const Classroom = () => {
     };
   };
 
-  const cleanLectureTopic = (rawTitle) => {
-    if (!rawTitle) return 'this topic';
-    const segments = rawTitle.split(/\||—|-{2,}/).map(s => s.trim()).filter(Boolean);
-    const isMetadata = (s) =>
-      /^(CS\s*&\s*IT|GATE.*|Crash Course|Computer Networks|Gate Smashers|Full Course|Hindi|English|Pune University|SPPU|Engineering.*|202\d)$/i.test(s) ||
-      /^(Lec|Lecture|TOC|Part|Ep|Session|Chapter)\s*[-#0-9:]*$/i.test(s);
-
-    let candidate = segments.find(s => !isMetadata(s)) || segments[0] || rawTitle;
-    return candidate
-      .replace(/^(Lec|Lecture|TOC|Chapter|Part|Ep|Episode|Session)[\s\-#0-9:]+/i, '')
-      .replace(/^[0-9]+(\.[0-9]+)*[\s\-:]+/, '')
-      .trim() || candidate;
-  };
-
-  const generateFallbackCheckpoints = (vTitle, vDuration = 600) => {
-    const cleanTopic = cleanLectureTopic(vTitle);
-    const safeDur = Math.max(120, vDuration || 600);
-
-    // Skip introduction: start at ~3 min for long lectures (>=15 min), ~2 min for medium, ~1.5 min for short
-    const startTime = safeDur >= 900 ? 180 : (safeDur >= 480 ? 130 : 90);
-    const endTime = Math.max(startTime + 60, safeDur - 45);
-    const availableSpan = endTime - startTime;
-
-    const intervalSec = safeDur > 1800 ? 110 : 95;
-    const count = Math.max(2, Math.min(24, Math.floor(availableSpan / intervalSec)));
-    const step = availableSpan / Math.max(1, count - 1);
-
-    const questionTemplates = [
-      {
-        badge: "Core Concept",
-        q: (t) => `Lesson Check: Which foundational formula or problem setup was established for ${t}?`,
-        options: [
-          "Standard analytical formula and initial boundary conditions",
-          "Arbitrary variable replacement without verification",
-          "Skipping all intermediate constraint checks",
-          "Disregarding domain limits completely"
-        ],
-        ans: "Standard analytical formula and initial boundary conditions",
-        exp: "The lecture establishes the governing formula and domain boundary conditions at this stage."
-      },
-      {
-        badge: "Method Check",
-        q: (t) => `Method Check: Which step or calculation rule was applied in this section of ${t}?`,
-        options: [
-          "Systematic evaluation of coefficients and boundary integrals",
-          "Approximating values without mathematical basis",
-          "Discarding constant factors without reason",
-          "Bypassing the standard derivation procedure"
-        ],
-        ans: "Systematic evaluation of coefficients and boundary integrals",
-        exp: "Systematic step-by-step evaluation ensures mathematical accuracy throughout the derivation."
-      },
-      {
-        badge: "Step Check",
-        q: (t) => `Step Verification: How are domain limits or terms resolved in this step of ${t}?`,
-        options: [
-          "By applying upper and lower boundary limits into the evaluated expression",
-          "By assuming all boundary terms evaluate to zero without checking",
-          "By ignoring the specified interval boundaries",
-          "By eliminating all variable terms arbitrarily"
-        ],
-        ans: "By applying upper and lower boundary limits into the evaluated expression",
-        exp: "Substituting boundary values resolves definite integrals and term values correctly."
-      },
-      {
-        badge: "Concept Mastery",
-        q: (t) => `Concept Check: What is the primary analytical outcome derived at this point in ${t}?`,
-        options: [
-          "The exact evaluated coefficient or simplified algebraic form",
-          "An unverified non-convergent series term",
-          "A discarded constant with no mathematical value",
-          "An incomplete expression missing boundary parameters"
-        ],
-        ans: "The exact evaluated coefficient or simplified algebraic form",
-        exp: "Completing each algebraic evaluation yields the exact term needed for the final solution."
-      }
-    ];
-
-    const result = [];
-    for (let i = 0; i < count; i++) {
-      const ts = Math.round(startTime + i * step);
-      const pct = ts / safeDur;
-      const tmpl = questionTemplates[i % questionTemplates.length];
-      const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(tmpl.options, tmpl.ans);
-      result.push({
-        id: `cp_fb_${i}_${videoId}`,
-        pct,
-        timestamp: ts,
-        question: tmpl.q(cleanTopic),
-        options: shuffledOpts,
-        answer: resolvedAns,
-        explanation: tmpl.exp,
-        index: i,
-        total: count,
-        isFallback: true
-      });
-    }
-    return result;
-  };
+  const isGenericCheckpoint = (question) =>
+    /foundational formula|core method or calculation|calculation rule was applied|domain limits or terms|primary analytical outcome|standard formula derivation|standard analytical formula/i.test(String(question || ''));
 
   const handleCheckpointAnswer = (isCorrect, xpAmount) => {
     if (isCorrect) {
@@ -1411,9 +1314,7 @@ const Classroom = () => {
     let isMounted = true;
 
     const fetchCheckpoints = async () => {
-      const dur = videoDuration || video?.duration_seconds || 600;
-      const initialFallback = generateFallbackCheckpoints(video?.name, dur).map(cp => ({ ...cp, isFallback: true }));
-      if (isMounted) setCheckpoints(initialFallback);
+      if (isMounted) setCheckpoints([]);
 
       try {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -1422,10 +1323,11 @@ const Classroom = () => {
           { headers }
         );
 
-        if (isMounted && res.data?.checkpoints && Array.isArray(res.data.checkpoints) && res.data.checkpoints.length > 0) {
-          const realDur = videoDuration || video?.duration_seconds || dur;
-          const mapped = res.data.checkpoints.map((cp, idx) => {
-            const pct = cp.pct !== undefined ? cp.pct : (realDur > 0 ? (cp.timestamp / realDur) : ((idx + 1) / (res.data.checkpoints.length + 1)));
+        if (isMounted && res.data?.checkpoints && Array.isArray(res.data.checkpoints)) {
+          const realDur = videoDuration || video?.duration_seconds || 600;
+          const grounded = res.data.checkpoints.filter((cp) => cp?.question && !isGenericCheckpoint(cp.question));
+          const mapped = grounded.map((cp, idx) => {
+            const pct = cp.pct !== undefined ? cp.pct : (realDur > 0 ? (cp.timestamp / realDur) : ((idx + 1) / (grounded.length + 1)));
             const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(cp.options, cp.answer);
             return {
               ...cp,
@@ -1434,42 +1336,14 @@ const Classroom = () => {
               pct,
               timestamp: Number(cp.timestamp) || Math.round(realDur * pct),
               index: idx,
-              total: res.data.checkpoints.length,
+              total: grounded.length,
               isFallback: false
             };
           });
           setCheckpoints(mapped);
-        } else if (token) {
-          const quizRes = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/start-quiz/`, {
-            idToken: token,
-            contentType: 'video',
-            contentId: videoId,
-          });
-
-          if (isMounted && quizRes.data?.quiz?.questions && Array.isArray(quizRes.data.quiz.questions) && quizRes.data.quiz.questions.length > 0) {
-            const qs = quizRes.data.quiz.questions;
-            const realDur = videoDuration || video?.duration_seconds || dur;
-            const mapped = qs.map((q, idx) => {
-              const pct = (idx + 1) / (qs.length + 1);
-              const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(q.options || ["True", "False"], q.answer);
-              return {
-                id: `cp_${videoId}_${idx}`,
-                question: q.question,
-                options: shuffledOpts,
-                answer: resolvedAns,
-                explanation: q.explanation || "",
-                pct,
-                timestamp: Math.max(30, Math.round(realDur * pct)),
-                index: idx,
-                total: qs.length,
-                isFallback: false
-              };
-            });
-            setCheckpoints(mapped);
-          }
         }
       } catch (_) {
-        // Retain fallback
+        if (isMounted) setCheckpoints([]);
       }
     };
 
@@ -1480,22 +1354,7 @@ const Classroom = () => {
     };
   }, [videoId, token, video?.name]);
 
-  // Recalibrate checkpoint timestamps when true video duration is known
-  useEffect(() => {
-    if (videoDuration > 0) {
-      setCheckpoints(prev => {
-        if (!prev || prev.length === 0) {
-          return generateFallbackCheckpoints(video?.name, videoDuration);
-        }
-        const isFallback = prev.some(cp => String(cp.id).startsWith('cp_fb_'));
-        if (isFallback) {
-          return generateFallbackCheckpoints(video?.name, videoDuration);
-        }
-        // AI-generated checkpoints already have exact content-grounded timestamps; preserve them!
-        return prev;
-      });
-    }
-  }, [videoDuration, video?.name]);
+  // Real checkpoints already use transcript timestamps. Do not replace them with generic questions.
 
   // Track continuous progress to avoid spamming the backend
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
