@@ -6,9 +6,8 @@
  *
  * Core principles:
  * 1. Dynamic Intro Detection: Intro varies (15s to 2.5 min); NEVER ask questions in intro.
- * 2. Pacing: At least 1 question every 1.5 - 2 minutes (~95s - 110s cadence).
- * 3. 100% Chunk-Grounded: Each question at timestamp T tests EXACTLY what was taught
- *    in the previous [prevT -> T] slice (the previous 1.5 - 2 minutes of the lecture).
+ * 2. Pacing: Ask when a topic finishes. If a topic runs long, still ask within 2 minutes.
+ * 3. 100% Chunk-Grounded: Each question tests a new fact from the speech since the previous check.
  * 4. Sentence-Snapped: Pause timestamps snap to natural sentence ends or speech pauses.
  * 5. Real-Time Duolingo: Crisp questions (<22 words), 4 short options, exact answer match.
  */
@@ -37,8 +36,9 @@ const fetchTimedSegments = async (videoId) => {
             timeout: 10000,
         });
 
+        const duration = Number(playerRes.data?.videoDetails?.lengthSeconds) || 0;
         const tracks = playerRes.data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-        if (!Array.isArray(tracks) || tracks.length === 0) return null;
+        if (!Array.isArray(tracks) || tracks.length === 0) return { segments: null, duration };
 
         // Prefer manual captions → auto-generated
         const preferred = tracks.find(t => !t.kind || t.kind !== 'asr') || tracks[0];
@@ -80,11 +80,58 @@ const fetchTimedSegments = async (videoId) => {
             }
         }
 
-        return segments.length > 0 ? segments : null;
+        return { segments: segments.length > 0 ? segments : null, duration };
     } catch (e) {
         console.warn(`[CheckpointQ] Caption fetch note for ${videoId}:`, e.message);
-        return null;
+        return { segments: null, duration: 0 };
     }
+};
+
+// If caption clocks only cover the opening of the lecture, the words are still in order.
+// Spread a full-length transcript across the video so later topics still get a check.
+const spreadTranscript = (segments, totalDuration) => {
+    const text = (segments || []).map((segment) => segment.text).join(' ').replace(/\s+/g, ' ').trim();
+    const words = text.split(' ').filter(Boolean);
+    const coverage = segments?.length ? Math.max(...segments.map((segment) => segment.end || 0)) : 0;
+    const wordsPerMinute = totalDuration > 0 ? words.length / (totalDuration / 60) : 0;
+    if (!words.length || !totalDuration || coverage >= totalDuration * 0.7 || wordsPerMinute < 70) {
+        return segments;
+    }
+    const buckets = Math.max(8, Math.round(totalDuration / 8));
+    const size = Math.ceil(words.length / buckets);
+    const spread = [];
+    for (let i = 0; i < buckets; i += 1) {
+        const slice = words.slice(i * size, (i + 1) * size).join(' ').trim();
+        if (!slice) continue;
+        const start = (i / buckets) * totalDuration;
+        const end = ((i + 1) / buckets) * totalDuration;
+        spread.push({ text: slice, offset: start, start, end, dur: end - start });
+    }
+    console.log(`[CheckpointQ] Caption clock covered ${Math.round(coverage)}s of ${Math.round(totalDuration)}s. Spreading transcript across the full lecture.`);
+    return spread;
+};
+
+// Some caption tracks report seconds, others milliseconds. Put every segment on the video clock.
+const alignSegmentClock = (segments, totalDuration) => {
+    if (!segments || segments.length === 0) return segments;
+    const maxEnd = Math.max(...segments.map((segment) => segment.end || 0));
+    if (!(maxEnd > 0)) return segments;
+    const duration = totalDuration > 30 ? totalDuration : maxEnd;
+    let scale = 1;
+    if (maxEnd < duration / 8 && maxEnd * 1000 > duration * 0.4 && maxEnd * 1000 < duration * 1.5) {
+        scale = 1000;
+    } else if (maxEnd > duration * 8 && maxEnd / 1000 > duration * 0.4 && maxEnd / 1000 < duration * 1.5) {
+        scale = 1 / 1000;
+    }
+    if (scale === 1) return segments;
+    console.log(`[CheckpointQ] Rescaling caption times by ${scale} (max ${maxEnd}s vs video ${duration}s)`);
+    return segments.map((segment) => ({
+        ...segment,
+        offset: segment.offset * scale,
+        start: segment.start * scale,
+        end: segment.end * scale,
+        dur: (segment.dur || 0) * scale,
+    }));
 };
 
 // ─── 2. Dynamic Intro Detection ──────────────────────────────────────────────
@@ -148,48 +195,60 @@ const detectTeachingStart = (segments, totalDuration, description = '', videoTit
     return clamped;
 };
 
-// ─── 3. Compute Timestamps with Sentence-End Snapping ────────────────────────
+// ─── 3. Place a check when a topic ends, and never wait longer than 2 minutes ─
 
-const calculateCheckpointTimestamps = (segments, teachingStart, totalDuration, count) => {
-    const contentStart = teachingStart;
-    const contentEnd = Math.max(contentStart + 120, totalDuration - 25);
-    const usableDuration = contentEnd - contentStart;
+const TOPIC_SHIFT = /\b(now|next|another|secondly|thirdly|moving on|let'?s|so the|so this|so now|this is called|this means|definition|defined as|for example|in other words|the next|coming to|remember|note that|important point|first|second|third|ab |toh |chaliye|matlab)\b/i;
 
-    const step = usableDuration / (count + 0.35);
-    const targetTimestamps = [];
-    for (let i = 0; i < count; i++) {
-        targetTimestamps.push(contentStart + (i + 1) * step);
-    }
+const snapToSentence = (segments, target) => {
+    if (!segments || segments.length === 0) return Math.round(target);
+    const candidates = segments.filter((segment) => segment.end >= target - 16 && segment.end <= target + 6);
+    if (candidates.length === 0) return Math.round(target);
+    candidates.sort((a, b) => {
+        const aSentence = /[.?!…]$/.test(a.text) ? 0 : 1;
+        const bSentence = /[.?!…]$/.test(b.text) ? 0 : 1;
+        if (aSentence !== bSentence) return aSentence - bSentence;
+        return Math.abs(a.end - target) - Math.abs(b.end - target);
+    });
+    return Math.round((candidates[0].end + 0.15) * 10) / 10;
+};
 
-    return targetTimestamps.map(ts => {
-        if (!segments || segments.length === 0) {
-            return Math.round(ts);
-        }
+const findTopicCheckpoints = (segments, teachingStart, totalDuration) => {
+    const MAX_GAP = 120;
+    const MIN_GAP = 50;
+    const contentEnd = Math.max(teachingStart + 80, totalDuration - 20);
+    const points = [];
+    let cursor = teachingStart;
+    const segs = segments || [];
 
-        const candidates = segments.filter(s => s.end >= ts - 22 && s.end <= ts + 22);
-        if (candidates.length === 0) {
-            return Math.round(ts);
-        }
+    while (cursor < contentEnd - 35 && points.length < 24) {
+        const earliest = cursor + MIN_GAP;
+        const latest = Math.min(cursor + MAX_GAP, contentEnd);
+        if (latest <= earliest + 5) break;
 
-        const scored = candidates.map(s => {
-            const next = segments[segments.indexOf(s) + 1];
-            const gap = next ? (next.start - s.end) : 0.4;
+        let bestTs = null;
+        let bestScore = 0;
+        segs.forEach((segment, index) => {
+            if (segment.end < earliest || segment.end > latest) return;
+            const nextText = segs[index + 1]?.text || '';
             let score = 0;
-
-            if (/[.?!…]$/.test(s.text) || s.text.endsWith('...')) score += 6;
-            if (gap >= 0.28) score += Math.min(gap * 4, 6);
-            if (next && /^[A-Z\u0900-\u097F]/.test(next.text)) score += 3;
-            if (next && /\b(so|now|then|therefore|let|toh|ab|chaliye)\b/i.test(next.text)) score += 2;
-
-            const dist = Math.abs(s.end - ts);
-            const totalScore = score - (dist * 0.2);
-            return { s, totalScore };
+            if (TOPIC_SHIFT.test(nextText)) score += 8;
+            if (TOPIC_SHIFT.test(segment.text)) score += 7;
+            if (/[.?!…]$/.test(segment.text)) score += 2;
+            const gap = segs[index + 1] ? segs[index + 1].start - segment.end : 0.3;
+            if (gap >= 0.4) score += 2;
+            if (score > bestScore) {
+                bestScore = score;
+                bestTs = segment.end;
+            }
         });
 
-        scored.sort((a, b) => b.totalScore - a.totalScore);
-        const best = scored[0];
-        return Math.round((best.s.end + 0.15) * 10) / 10;
-    });
+        const ts = bestScore >= 6 ? Math.round((bestTs + 0.15) * 10) / 10 : snapToSentence(segs, latest);
+        if (!ts || ts <= cursor + 20) break;
+        points.push(ts);
+        cursor = ts;
+    }
+
+    return points;
 };
 
 // ─── 4. Generate Single Question Grounded in Specific 2-Minute Chunk ──────────
@@ -244,24 +303,46 @@ const normalizeQuestion = (question) =>
         .replace(/[^a-z0-9\u0900-\u097f]+/g, ' ')
         .trim();
 
-const GENERIC_QUESTION = /foundational formula|core method or calculation|calculation rule was applied|domain limits or terms|primary analytical outcome|standard formula derivation|standard analytical formula/i;
+const GENERIC_QUESTION = /foundational formula|core method or calculation|calculation rule was applied|domain limits or terms|primary analytical outcome|standard formula derivation|standard analytical formula|which point about|part you just watched|which point was explained/i;
 
 const isGenericQuestion = (question) => GENERIC_QUESTION.test(String(question || ''));
+
+const STOP_WORDS = new Set(['this', 'that', 'with', 'from', 'they', 'them', 'have', 'what', 'when', 'where', 'which', 'there', 'their', 'about', 'would', 'could', 'should', 'these', 'those', 'into', 'your', 'because', 'while', 'after', 'before', 'other', 'also', 'than', 'then', 'been', 'were', 'will', 'just', 'like', 'some', 'such', 'only', 'over', 'each', 'more', 'most', 'very', 'does', 'doing', 'make', 'made', 'using', 'used', 'between', 'through', 'during', 'without', 'within', 'another', 'every', 'being', 'here', 'video', 'lecture', 'student', 'question', 'answer', 'option', 'means', 'called', 'known']);
+
+const contentWords = (text) => normalizeQuestion(text).split(' ').filter((word) => word.length > 3 && !STOP_WORDS.has(word));
 
 const questionsTooSimilar = (a, b) => {
     const na = normalizeQuestion(a);
     const nb = normalizeQuestion(b);
     if (!na || !nb) return false;
-    if (na === nb || na.slice(0, 42) === nb.slice(0, 42)) return true;
-    const words = (text) => new Set(text.split(' ').filter((word) => word.length > 3));
-    const left = words(na);
-    const right = words(nb);
-    if (left.size < 4 || right.size < 4) return false;
-    let shared = 0;
-    left.forEach((word) => {
-        if (right.has(word)) shared += 1;
+    if (na === nb) return true;
+    if (na.length > 40 && nb.length > 40 && (na.includes(nb) || nb.includes(na))) return true;
+    return na.slice(0, 48) === nb.slice(0, 48);
+};
+
+const freshTerms = (sliceText, priorText) => {
+    const prior = new Set(contentWords(priorText));
+    const seen = [];
+    contentWords(sliceText).forEach((word) => {
+        if (!prior.has(word) && !seen.includes(word)) seen.push(word);
     });
-    return shared / Math.min(left.size, right.size) >= 0.72;
+    return seen.slice(0, 12);
+};
+
+const transcriptIsMostlyTranslated = (chunkText) => {
+    const letters = chunkText.match(/[A-Za-z\u0900-\u097F]/g) || [];
+    if (letters.length < 40) return false;
+    const nonLatin = letters.filter((ch) => ch.charCodeAt(0) > 127).length;
+    return nonLatin > letters.length * 0.45;
+};
+
+const questionIsGrounded = (question, chunkText) => {
+    if (isGenericQuestion(question.question)) return false;
+    // Hindi and other lectures are often answered in English, so a word match would reject every check.
+    if (transcriptIsMostlyTranslated(chunkText)) return true;
+    const chunk = new Set(normalizeQuestion(chunkText).split(' '));
+    const mentioned = [...contentWords(question.answer), ...contentWords(question.question)];
+    return mentioned.filter((word) => chunk.has(word)).length >= 1;
 };
 
 const parseQuestionJson = (text) => {
@@ -280,48 +361,58 @@ const parseQuestionJson = (text) => {
 const acceptQuestion = (parsed) => {
     if (!parsed?.question || !Array.isArray(parsed.options) || parsed.options.length < 4 || !parsed.answer) return null;
     if (isGenericQuestion(parsed.question)) return null;
-    const { options, answer } = shuffleOptions(parsed.options.slice(0, 4), parsed.answer);
-    if (!options.includes(answer)) return null;
+    const combined = [parsed.question, ...parsed.options].join(' ');
+    const letters = combined.match(/[A-Za-z\u0900-\u097F]/g) || [];
+    const hindiLetters = letters.filter((ch) => ch.charCodeAt(0) > 127).length;
+    if (letters.length > 0 && hindiLetters / letters.length > 0.2) return null;
+    const norm = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const options = parsed.options.slice(0, 4).map((option) => String(option).trim()).filter(Boolean);
+    if (options.length < 4) return null;
+    let answer = String(parsed.answer).trim();
+    if (!options.some((option) => norm(option) === norm(answer))) {
+        const hit = options.find((option) => norm(option).includes(norm(answer)) || norm(answer).includes(norm(option)));
+        if (!hit) return null;
+        answer = hit;
+    }
+    const shuffled = shuffleOptions(options, answer);
+    if (!shuffled.options.includes(shuffled.answer)) return null;
     return {
         question: String(parsed.question).trim(),
-        options,
-        answer,
+        options: shuffled.options,
+        answer: shuffled.answer,
         explanation: parsed.explanation || ''
     };
 };
 
-const generateQuestionsForSlices = async (videoTitle, defs, alreadyAsked) => {
-    const slices = defs.map((def) => {
-        const spoken = def.chunkText.length > 2200 ? def.chunkText.slice(-2200) : def.chunkText;
-        return `SLICE ${def.idx} — student has watched up to ${formatTimeLabel(def.ts)} (this check covers ${formatTimeLabel(def.prevTs)} to ${formatTimeLabel(def.ts)} only):\n${spoken}`;
-    }).join('\n\n');
-
+const generateQuestionForSlice = async (videoTitle, def, alreadyAsked) => {
+    const spoken = def.chunkText.length > 1600 ? def.chunkText.slice(-1600) : def.chunkText;
+    const language = 'Write the question, every option, and the explanation in clear English only. If the transcript is Hindi or another language, translate the idea into English. Do not use Hindi words.';
+    const focus = def.newTerms?.length ? `Teachable ideas in this part: ${def.newTerms.slice(0, 8).join(', ')}.` : '';
     const forbidden = alreadyAsked.length
-        ? `Already asked. Do not repeat or rephrase any of these:\n${alreadyAsked.map((q, i) => `${i + 1}. ${q}`).join('\n')}`
-        : 'No questions have been asked yet.';
+        ? `Do not repeat these questions:\n${alreadyAsked.slice(-8).map((q, i) => `${i + 1}. ${q.question || q}`).join('\n')}`
+        : '';
 
-    const prompt = `You write in-video checks for the lecture "${videoTitle}".
+    const prompt = `You write one Duolingo-style check for the lecture "${videoTitle}".
+The student just watched only this part, from ${formatTimeLabel(def.prevTs)} to ${formatTimeLabel(def.ts)}:
+${spoken}
 
-Each slice below is the exact speech the student just watched, and nothing after that timestamp.
+${focus}
 ${forbidden}
+${language}
 
-${slices}
-
-For every slice, write ONE multiple-choice question that a student can answer only from that slice.
-The question must check a specific fact, term, step, number, name, definition, or distinction that was actually said in that slice.
-Do not ask about the lecture title in general. Do not ask what "might" have been taught. Do not reuse the same fact across slices.
+Ask ONE specific question about a fact, rule, number, name, or definition that was taught in this part.
+Do not ask "which point was explained" and do not paste transcript lines as options.
+Wrong options must be short and plausible, but not what was just said.
 
 Rules:
 - Question under 22 words.
-- Exactly 4 options, each under 10 words, and all different.
-- "answer" must be copied exactly from one option.
-- Put the correct option in a different position for each question.
-- One-sentence explanation under 20 words, using only that slice.
-- Math uses $...$ LaTeX with braces, never glued scripts. Write $0^{i}1^{j}0^{k}$, not 0^i_1^j_0^k. Escape backslashes in JSON as \\\\.
-- Return one object per slice, using that slice's index. Skip a slice only if it has no teachable fact.
+- Exactly 4 short options, each under 12 words.
+- "answer" is copied exactly from one option.
+- One-sentence explanation.
+- Math uses $...$ with braces. Escape backslashes as \\\\.
 
 Respond ONLY with JSON:
-{"questions":[{"index":0,"question":"...","options":["...","...","...","..."],"answer":"...","explanation":"..."}]}`;
+{"question":"...","options":["...","...","...","..."],"answer":"...","explanation":"..."}`;
 
     try {
         const text = await generateGeminiContent(MODELS.GEMINI_FLASH_LITE, prompt, {
@@ -331,20 +422,11 @@ Respond ONLY with JSON:
         });
 
         const parsed = parseQuestionJson(text);
-        const list = Array.isArray(parsed?.questions) ? parsed.questions : [];
-        const byIndex = new Map();
-        list.forEach((item, position) => {
-            const accepted = acceptQuestion(item);
-            if (!accepted) return;
-            const index = defs.some((def) => def.idx === item.index)
-                ? item.index
-                : defs[position]?.idx;
-            if (index !== undefined && !byIndex.has(index)) byIndex.set(index, accepted);
-        });
-        return byIndex;
+        const accepted = acceptQuestion(parsed?.question ? parsed : parsed?.questions?.[0]);
+        return accepted;
     } catch (e) {
-        console.warn(`[CheckpointQ] Slice batch error:`, e.message);
-        return new Map();
+        console.warn(`[CheckpointQ] Slice question error:`, e.message);
+        return null;
     }
 };
 
@@ -354,9 +436,9 @@ Respond ONLY with JSON:
  * GET /api/checkpoint-questions/:videoId
  *
  * Guaranteed Rules:
- * - At least 1 question every 1.5 - 2 minutes (~95s - 110s cadence)
- * - Intro dynamically skipped (no questions during intro)
- * - Grounded 100% in what was taught in the previous 1.5 - 2 minutes
+ * - A check when a topic finishes, and always within 2 minutes
+ * - Intro skipped
+ * - Each question is about a new fact spoken since the previous check
  * - Pauses cleanly at end of sentence
  */
 const getCheckpointQuestions = async (req, res) => {
@@ -364,19 +446,10 @@ const getCheckpointQuestions = async (req, res) => {
 
     if (!videoId) return res.status(400).json({ error: 'videoId required' });
 
-    // Cache key v10: questions come only from the transcript watched up to each pause.
-    const cacheKey = `checkpoint-questions:v10:${videoId}`;
+    // Cache key v18: each check is a real question about the last 2–3 minutes, not a generic prompt.
+    const cacheKey = `checkpoint-questions:v19:${videoId}`;
 
     try {
-        const cached = await cacheService.get(cacheKey);
-        const cachedIsUsable = Array.isArray(cached)
-            && cached.length >= 1
-            && cached.every((cp) => cp?.question && !isGenericQuestion(cp.question));
-        if (cachedIsUsable) {
-            console.log(`[CheckpointQ] ✅ Cache hit for ${videoId} (${cached.length} checkpoints)`);
-            return res.status(200).json({ checkpoints: cached });
-        }
-
         // Fetch video record from DB
         const video = await prisma.video.findFirst({ where: { vid: videoId } });
         const videoTitle = video?.name || 'this lecture';
@@ -385,62 +458,90 @@ const getCheckpointQuestions = async (req, res) => {
 
         // Fetch timed transcript segments
         console.log(`[CheckpointQ] Fetching segments for ${videoId}...`);
-        const segments = await fetchTimedSegments(vid);
-
-        // Determine total video duration
-        let totalDuration = video?.duration_seconds || (segments && segments[segments.length - 1]?.end) || 600;
+        const caption = await fetchTimedSegments(vid);
+        let totalDuration = caption?.duration || video?.duration_seconds || 0;
+        let segments = alignSegmentClock(caption?.segments, totalDuration);
         if (segments && segments.length > 0 && segments[segments.length - 1].end > totalDuration) {
             totalDuration = segments[segments.length - 1].end;
         }
+        if (!totalDuration) totalDuration = 600;
+        segments = spreadTranscript(segments, totalDuration);
 
         console.log(`[CheckpointQ] Video: "${videoTitle.slice(0, 40)}" | Duration: ${totalDuration}s | Segments: ${segments?.length || 0}`);
 
         // 1. Dynamic Intro Detection
         const teachingStart = detectTeachingStart(segments, totalDuration, video?.description || '', videoTitle);
 
-        // 2. Dynamic Checkpoint Count: At least 1 question every 1.5 - 2 minutes (95s - 110s cadence)
-        const usableContentDuration = Math.max(90, (totalDuration - 25) - teachingStart);
-        const targetCount = Math.max(
-            2,
-            Math.min(22, Math.round(usableContentDuration / 98))
-        );
+        const expectedCount = Math.max(2, Math.min(24, Math.round(Math.max(90, totalDuration - teachingStart - 20) / 110)));
+        const cached = await cacheService.get(cacheKey);
+        const cachedIsUsable = Array.isArray(cached)
+            && cached.length >= Math.max(2, Math.ceil(expectedCount * 0.7))
+            && cached.every((cp) => cp?.question && !isGenericQuestion(cp.question));
+        if (cachedIsUsable) {
+            console.log(`[CheckpointQ] ✅ Cache hit for ${videoId} (${cached.length} checkpoints)`);
+            return res.status(200).json({ checkpoints: cached });
+        }
 
-        console.log(`[CheckpointQ] Target count for ${Math.round(totalDuration / 60)}m video: ${targetCount} (teaching starts at ${teachingStart}s)`);
+        console.log(`[CheckpointQ] Placing topic checks for ${Math.round(totalDuration / 60)}m video (teaching starts at ${teachingStart}s, expect about ${expectedCount})`);
 
-        // 3. Sentence-End Snapped Timestamps
-        const timestamps = calculateCheckpointTimestamps(segments, teachingStart, totalDuration, targetCount);
+        // 2. Pause when a topic ends. If none ends, pause by the 2-minute mark.
+        const timestamps = findTopicCheckpoints(segments, teachingStart, totalDuration);
 
-        // 4. Each check uses only the speech from the previous pause up to this one.
+        // 4. Each check uses only speech since the previous check, and only if that part introduced something new.
         const seenQuestions = [];
         const chunkDefs = [];
         let previousTs = teachingStart;
+        const sliceText = (from, to) => (segments || [])
+            .filter((s) => s.offset >= from && s.offset <= to)
+            .map((s) => s.text)
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
         timestamps.forEach((ts) => {
-            if (ts - previousTs < 70) return;
-            const sliceSegs = (segments || []).filter((s) => s.offset >= previousTs && s.offset <= ts);
-            const chunkText = sliceSegs.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim();
-            if (chunkText.length < 80) return;
-            chunkDefs.push({ ts, prevTs: previousTs, idx: chunkDefs.length, chunkText });
+            const chunkText = sliceText(previousTs, ts);
+            if (chunkText.length < 120) {
+                previousTs = ts;
+                return;
+            }
+            const priorText = sliceText(0, previousTs);
+            const introduced = freshTerms(chunkText, priorText);
+            const terms = introduced.length >= 2
+                ? introduced
+                : contentWords(chunkText).filter((word, index, all) => all.indexOf(word) === index).slice(0, 8);
+            chunkDefs.push({ ts, prevTs: previousTs, idx: chunkDefs.length, chunkText, newTerms: terms });
             previousTs = ts;
         });
 
         console.log(`[CheckpointQ] Generating ${chunkDefs.length} checks from watched transcript slices...`);
 
-        const BATCH_SIZE = 4;
         const questionsByIndex = new Map();
-        for (let i = 0; i < chunkDefs.length; i += BATCH_SIZE) {
-            const batch = chunkDefs.slice(i, i + BATCH_SIZE);
-            const batchQuestions = await generateQuestionsForSlices(videoTitle, batch, seenQuestions);
-            batch.forEach((def) => {
-                const question = batchQuestions.get(def.idx);
-                if (!question) return;
-                const repeated = seenQuestions.some((asked) => questionsTooSimilar(asked, question.question));
-                if (repeated) return;
-                questionsByIndex.set(def.idx, question);
-                seenQuestions.push(question.question);
-            });
-        }
+        const storeQuestion = (def, question) => {
+            if (!question || !questionIsGrounded(question, def.chunkText)) return false;
+            const repeated = seenQuestions.some((asked) =>
+                questionsTooSimilar(asked.question, question.question) || questionsTooSimilar(asked.answer, question.answer)
+            );
+            if (repeated) return false;
+            questionsByIndex.set(def.idx, question);
+            seenQuestions.push(question);
+            return true;
+        };
 
-        // 5. Keep only checks that are about the slice the student just watched.
+        const pending = [...chunkDefs];
+        const workers = Array.from({ length: Math.min(3, pending.length) }, async () => {
+            while (pending.length) {
+                const def = pending.shift();
+                if (!def) return;
+                const question = await generateQuestionForSlice(videoTitle, def, seenQuestions);
+                if (!storeQuestion(def, question)) {
+                    const retry = await generateQuestionForSlice(videoTitle, def, seenQuestions);
+                    storeQuestion(def, retry);
+                }
+            }
+        });
+        await Promise.all(workers);
+
+        // 5. Keep only real questions about the slice the student just watched.
         const checkpoints = chunkDefs.flatMap((def) => {
             const question = questionsByIndex.get(def.idx);
             if (!question) return [];
@@ -459,7 +560,7 @@ const getCheckpointQuestions = async (req, res) => {
 
         console.log(`[CheckpointQ] Successfully prepared ${checkpoints.length} chunk-grounded checkpoints for ${videoId}`);
 
-        if (checkpoints.length > 0) {
+        if (checkpoints.length >= Math.max(2, Math.ceil(expectedCount * 0.7))) {
             await cacheService.set(cacheKey, checkpoints, 24 * 3600);
         }
 

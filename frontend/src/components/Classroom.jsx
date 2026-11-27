@@ -861,6 +861,8 @@ const Classroom = () => {
   const [checkpoints, setCheckpoints] = useState([]);
   const [activeCheckpoint, setActiveCheckpoint] = useState(null);
   const triggeredCheckpointIdsRef = useRef(new Set());
+  const checkpointCooldownUntilRef = useRef(0);
+  const lastPlayheadRef = useRef(null);
   const [checkpointsEnabled, setCheckpointsEnabled] = useState(() => {
     try {
       const saved = localStorage.getItem('learnproof_checkpoints_enabled');
@@ -1205,7 +1207,28 @@ const Classroom = () => {
   };
 
   const isGenericCheckpoint = (question) =>
-    /foundational formula|core method or calculation|calculation rule was applied|domain limits or terms|primary analytical outcome|standard formula derivation|standard analytical formula/i.test(String(question || ''));
+    /foundational formula|core method or calculation|calculation rule was applied|domain limits or terms|primary analytical outcome|standard formula derivation|standard analytical formula|which point about|part you just watched|which point was explained/i.test(String(question || ''));
+
+  const checkpointTextKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+  const checkpointsRepeat = (a, b) => {
+    const left = checkpointTextKey(a);
+    const right = checkpointTextKey(b);
+    if (!left || !right) return false;
+    if (left === right) return true;
+    return left.length > 40 && right.length > 40 && (left.includes(right) || right.includes(left));
+  };
+
+  const selectSpacedCheckpoints = (list) => {
+    const sorted = [...list].sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+    const kept = [];
+    sorted.forEach((cp) => {
+      if (kept.some((prev) => checkpointsRepeat(prev.question, cp.question) && checkpointsRepeat(prev.answer, cp.answer))) return;
+      if (kept.length && Number(cp.timestamp) - Number(kept[kept.length - 1].timestamp) < 40) return;
+      kept.push(cp);
+    });
+    return kept.map((cp, idx) => ({ ...cp, index: idx, total: kept.length }));
+  };
 
   const handleCheckpointAnswer = (isCorrect, xpAmount) => {
     if (isCorrect) {
@@ -1303,6 +1326,8 @@ const Classroom = () => {
     setSessionXp(0);
     setComboCount(0);
     triggeredCheckpointIdsRef.current = new Set();
+    checkpointCooldownUntilRef.current = 0;
+    lastPlayheadRef.current = null;
 
     try {
       const saved = localStorage.getItem(`learnproof_completed_cp_${videoId}`);
@@ -1324,10 +1349,10 @@ const Classroom = () => {
         );
 
         if (isMounted && res.data?.checkpoints && Array.isArray(res.data.checkpoints)) {
-          const realDur = videoDuration || video?.duration_seconds || 600;
+          const realDur = videoDuration || video?.duration_seconds || Math.max(...res.data.checkpoints.map((cp) => Number(cp.timestamp) || 0), 0) * 1.2 || 600;
           const grounded = res.data.checkpoints.filter((cp) => cp?.question && !isGenericCheckpoint(cp.question));
-          const mapped = grounded.map((cp, idx) => {
-            const pct = cp.pct !== undefined ? cp.pct : (realDur > 0 ? (cp.timestamp / realDur) : ((idx + 1) / (grounded.length + 1)));
+          const mapped = selectSpacedCheckpoints(grounded.map((cp) => {
+            const pct = cp.pct !== undefined ? cp.pct : (realDur > 0 ? (cp.timestamp / realDur) : 0);
             const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(cp.options, cp.answer);
             return {
               ...cp,
@@ -1335,11 +1360,9 @@ const Classroom = () => {
               answer: resolvedAns,
               pct,
               timestamp: Number(cp.timestamp) || Math.round(realDur * pct),
-              index: idx,
-              total: grounded.length,
               isFallback: false
             };
-          });
+          }));
           setCheckpoints(mapped);
         }
       } catch (_) {
@@ -3363,18 +3386,24 @@ const Classroom = () => {
               setShowNextOverlay(true);
             }
 
-            // Duolingo Checkpoint Auto-Trigger (Triggers checkpoints reliably across all devices)
+            // Pause only when playback crosses a check. Do not pause for a check
+            // already behind the playhead (resume, seek, or questions loading late).
             const isCpEnabled = checkpointsEnabledRef.current;
             const cpList = checkpointsRef.current;
             const curActiveCp = activeCheckpointRef.current;
             const isCelebrating = showCelebrationRef.current;
+            const previousTime = lastPlayheadRef.current;
+            const movedForward = previousTime != null && currentTime >= previousTime && currentTime - previousTime <= 20;
+            lastPlayheadRef.current = currentTime;
 
-            if (isCpEnabled && cpList && cpList.length > 0 && !curActiveCp && !isCelebrating) {
-              const triggerable = cpList.find(cp =>
+            if (isCpEnabled && movedForward && cpList && cpList.length > 0 && !curActiveCp && !isCelebrating && currentTime >= checkpointCooldownUntilRef.current) {
+              const crossed = cpList.filter(cp =>
+                previousTime < cp.timestamp &&
                 currentTime >= cp.timestamp &&
-                (currentTime - cp.timestamp) <= 12.0 &&
                 !triggeredCheckpointIdsRef.current.has(cp.id)
               );
+              crossed.slice(0, -1).forEach((cp) => triggeredCheckpointIdsRef.current.add(cp.id));
+              const triggerable = crossed[crossed.length - 1];
 
               if (triggerable) {
                 console.log(`[Duolingo Checkpoint Auto-Trigger] Activated ${triggerable.id} at ${currentTime.toFixed(1)}s (target: ${triggerable.timestamp}s)`);
@@ -3396,6 +3425,7 @@ const Classroom = () => {
                   } catch (_) {}
                 }
                 activeCheckpointRef.current = triggerable;
+                checkpointCooldownUntilRef.current = currentTime + 35;
                 try {
                   if (typeof player.pauseVideo === 'function') player.pauseVideo();
                 } catch (_) {}
@@ -3450,11 +3480,12 @@ const Classroom = () => {
   const handlePlayerStateChange = async (event) => {
     // A question or the end screen owns playback. Ignore cued/unstarted autoplay until it closes.
     if (activeCheckpointRef.current || showCelebrationRef.current) {
-      if (event.data === 1 || event.data === 3) {
+      // Buffering is normal. Only stop the video if it actually starts playing under a question.
+      if (event.data === 1) {
         try { event.target?.pauseVideo?.(); } catch (_) {}
+        setIsVideoPlaying(false);
+        isCurrentlyPlayingRef.current = false;
       }
-      setIsVideoPlaying(false);
-      isCurrentlyPlayingRef.current = false;
       return;
     }
 
