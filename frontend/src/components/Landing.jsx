@@ -35,15 +35,15 @@ const faqs = [
 const teamMembers = [
   {
     name: "Nitin Gaikwad",
-    role: "Founder & Lead Developer",
-    avatar: "https://unavatar.io/linkedin/nitin9699",
+    role: "Founder & CTO",
+    avatar: "/founders/nitin.jpg",
     bio: "Nitin is the creator and lead developer of LearnProof AI, building AI-powered study tools for lifelong learners.",
     linkedin: "https://www.linkedin.com/in/nitin9699"
   },
   {
     name: "Avishkar Kakade",
-    role: "Co-Founder",
-    avatar: "https://unavatar.io/linkedin/avishkar-kakade-16536124b",
+    role: "Co-Founder & CEO",
+    avatar: "/founders/avishkar.jpg",
     bio: "Avishkar is the Co-Founder of LearnProof AI, driving strategic vision, growth, and community partnerships.",
     linkedin: "https://www.linkedin.com/in/avishkar-kakade-16536124b/"
   }

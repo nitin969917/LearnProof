@@ -87,6 +87,7 @@ const DeleteAccount = lazyWithRetry(() => import('./components/Common/DeleteAcco
 const TermsOfService = lazyWithRetry(() => import('./components/Common/TermsOfService'));
 const DownloadPage = lazyWithRetry(() => import('./components/Common/DownloadPage'));
 const ContactCardPage = lazyWithRetry(() => import('./components/Common/ContactCardPage'));
+const FounderContactPage = lazyWithRetry(() => import('./components/Common/FounderContactPage'));
 const AmbassadorLanding = lazyWithRetry(() => import('./components/Common/AmbassadorLanding'));
 const AmbassadorDashboard = lazyWithRetry(() => import('./components/Dashboard/AmbassadorDashboard'));
 const LinkedInCallback = lazyWithRetry(() => import('./components/Common/LinkedInCallback'));
@@ -635,6 +636,8 @@ const App = () => {
                                 <Route path='/terms' element={<TermsOfService />} />
                                 <Route path='/support' element={<Support />} />
                                 <Route path='/contact' element={<ContactCardPage />} />
+                                <Route path='/contact-nitin' element={<FounderContactPage slug="nitin" />} />
+                                <Route path='/contact-avishkar' element={<FounderContactPage slug="avishkar" />} />
                                 <Route path='/contact-us' element={<Navigate to="/contact" replace />} />
                                 <Route path='/delete-account' element={<DeleteAccount />} />
                                 <Route path='/login' element={<LoginPage />} />

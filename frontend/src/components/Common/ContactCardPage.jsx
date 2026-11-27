@@ -21,6 +21,7 @@ import {
     ExternalLink
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { founders } from './founders';
 
 // Official WhatsApp Brand Vector Icon
 const WhatsAppIcon = ({ className = "w-4 h-4" }) => (
@@ -87,26 +88,7 @@ const ContactCardPage = () => {
     };
 
     // Founders with individual contact numbers and WhatsApp
-    const leadership = [
-        {
-            name: "Nitin Gaikwad",
-            role: "Founder & CEO",
-            initials: "NG",
-            phone: "+91 96991 76009",
-            cleanPhone: "919699176009",
-            email: "founder@learnproofai.com",
-            linkedin: "https://www.linkedin.com/in/nitin9699"
-        },
-        {
-            name: "Avishkar Kakade",
-            role: "Co-Founder & COO",
-            initials: "AK",
-            phone: "+91 90296 56714",
-            cleanPhone: "919029656714",
-            email: "kakadeavishkar84@gmail.com",
-            linkedin: "https://www.linkedin.com/in/avishkar-kakade-16536124b/"
-        }
-    ];
+    const leadership = founders;
 
     const channels = [
         {
@@ -228,9 +210,13 @@ const ContactCardPage = () => {
                                                         {person.initials}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-xs text-slate-900 leading-none">
+                                                        <button
+                                                            onClick={() => navigate(person.path)}
+                                                            className="font-bold text-xs text-slate-900 hover:text-orange-600 leading-none p-0 bg-transparent border-0 cursor-pointer text-left"
+                                                            title={`View ${person.name}'s contact page`}
+                                                        >
                                                             {person.name}
-                                                        </p>
+                                                        </button>
                                                         <p className="text-[10px] text-slate-500 mt-0.5">
                                                             {person.role}
                                                         </p>
